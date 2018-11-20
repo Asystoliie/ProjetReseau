@@ -144,13 +144,6 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	int recep;
-	if(recv(dS, &recep, sizeof(recep), 0) == -1)
-	{
-		perror("Erreur lors de la confirmation de l'envoie du pseudo");
-		exit(EXIT_FAILURE);
-	}
-
 	enum
 	{
 	   USER_COLUMN,

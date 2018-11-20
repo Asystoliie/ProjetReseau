@@ -51,6 +51,14 @@ int findPos(int* socketClientArray){
 	}
 }
 
+void* update(void * tmp){
+
+}
+
+void* majAffichageUti(void * tmp){
+
+}
+
 void* gestionClient(void* tmp){
 	InfoClient* infoClient = tmp;
 	printf("Gestion client numéro %i\n", infoClient->numClient);
@@ -77,18 +85,21 @@ void* gestionClient(void* tmp){
 	printf("%s\n", pseudo);
 	//AJOUTER DES SEMAHPORES ICI POUR L'ACCES A LA MEMOIRE PARTAGÉE
 	strcpy(sharedStruct->listPseudo[0], pseudo);
+	//j'envoi les pseudos
+	int flag; //flag pour savoir si le client quitte l'application
+	do{
+		if(reception_tcp(socketClientArray[position],&flag,sizeof(int))!=0){
+			perror("Erreur reception flag");
+			exit(EXIT_FAILURE);
+		}
+		if(flag==0){
+			//déconnexion à gérer 
+		}
+		else{
 
-	/** FLAG NUMERO 2
-	*	Lorsqu'un nouvel utilisateur arrive sur le serveur, il doit mettre à jour tous
-	*   les autres clients connectés sur le serveur
-	*/
-	// semaphores ici
-	flag2(infoClient, sharedStruct, pseudo);
-	// semaphores ici
+		}
 
-	printf("test\n");
-	printf("%s\n", sharedStruct->listPseudo[0]);
-
+	}while(flag==1);
 
 }
 
@@ -160,21 +171,25 @@ int main(int argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
 
-    int nbClients = 0;
+    int nbClients = 0; // limiter à 10
     int* socketClientArray = malloc(MAX * sizeof(int));
     memset(socketClientArray, -1, MAX);
 
     pthread_t* threadClientArray = malloc (MAX * sizeof(pthread_t));
+    pthread_t* threadClientUpdateArray = malloc (MAX * sizeof(pthread_t));
     struct InfoClient* infoClient;
 
-	while(1){
 
-		printf("Waiting for a connection.\n");
-		if(listen(sock, 10) == -1)
-        {
-            perror("Error listen");
-            exit(EXIT_FAILURE);
-        }
+	printf("Waiting for a connection.\n");
+	if(listen(sock, 10) == -1) //10 client max
+    {
+        perror("Error listen");
+        exit(EXIT_FAILURE);
+    }
+
+
+    int fils=0;
+	while(fils!=1){
 
         struct sockaddr_in saiClient;
         int position = findPos(socketClientArray);
@@ -184,14 +199,42 @@ int main(int argc, char* argv[]){
             perror("Error accept");
             exit(EXIT_FAILURE);
         }
+        //memoire partage + semaphore
         nbClients++;
-
-        /* Création du thread pour le client */
-        infoClient = malloc(sizeof(struct InfoClient));
-        init_infoClient(infoClient, socketClientArray, position, id_mem, nbClients);
-        pthread_create(&threadClientArray[position], NULL, gestionClient, infoClient);
-
+        //memoire partage + semaphore
         printf("New connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
+        pid_t pid = fork();
+        if(pid==-1){ //erreur
+        	printf("ERROR FORK\n");
+        	exit(EXIT_FAILURE);
+        } else if(pid==0){ //fils
+        	fils=1;
+	        /* Création du thread pour le client */
+	        infoClient = malloc(sizeof(struct InfoClient));
+	        init_infoClient(infoClient, socketClientArray, position, id_mem, nbClients);
+	      	if(pthread_create(&threadClientArray[position], NULL, gestionClient, infoClient) != 0){
+	      		printf("Erreur ! \n");
+	      		exit(EXIT_FAILURE);
+	      	}
+
+	      	if(pthread_create(&threadClientUpdateArray[position], NULL, update, infoClient) != 0){
+	      		printf("Erreur ! \n");
+	      		exit(EXIT_FAILURE);
+	      	}
+
+	      	if(pthread_join(threadClientArray[position],NULL) != 0){
+	      		printf("Erreur ! \n");
+	      		exit(EXIT_FAILURE);
+	      	}
+
+	      	if(pthread_join(threadClientUpdateArray[position],NULL) != 0){
+	      		printf("Erreur ! \n");
+	      		exit(EXIT_FAILURE);
+	      	}
+	      	free(threadClientArray);
+	      	free(threadClientUpdateArray);	     
+	     } 
+
 	}
 
 	exit(EXIT_SUCCESS);

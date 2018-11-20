@@ -37,5 +37,6 @@ struct SharedStruct{
 	int socketClientArray[20];
 	char listPseudo[20][30];
 	int nbFichiers;
+	char fichier[5000];
 	char listFichiers[20][40];
 };
