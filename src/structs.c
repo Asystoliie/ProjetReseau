@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 
 int MAX = 20;
+int NB_CLIENT =10;
 
 typedef struct InfoClient InfoClient;
 struct InfoClient{
@@ -40,3 +41,11 @@ struct SharedStruct{
 	char fichier[5000];
 	char listFichiers[20][40];
 };
+
+union semun {
+	int val;
+	struct semid_ds *buf;
+	unsigned short *array;
+	struct seminfo *__buf;
+};
+

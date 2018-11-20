@@ -53,10 +53,34 @@ int findPos(int* socketClientArray){
 
 void* update(void * tmp){
 
+	InfoClient* infoClient = tmp;
+	int position = infoClient->position;
+
+	struct sembuf opp;
+
+	/* Recuperation du semaphore*/
+	key_t key = ftok("./key.txt", 42);
+	int semID =semget(key,position,0666);
+		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
+
+
+	do{
+		// il a bien reçus qu'il peut update !
+		opp.sem_num=position;
+		opp.sem_op=-1;
+		opp.sem_flg=0;
+		semop(semID,&opp,1);
+
+		//dit aux autres de s'update
+
+
+	}while(1);
+
 }
 
 void* majAffichageUti(void * tmp){
-
+	//attend un update des autres clients
+	//mise à jour client
 }
 
 void* gestionClient(void* tmp){
@@ -74,6 +98,11 @@ void* gestionClient(void* tmp){
 		exit(EXIT_FAILURE);
 	}
 
+	/* Recuperation du semaphore*/
+	key_t key = ftok("./key.txt", 42);
+	int semID =semget(key,position,0666);
+		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
+
 	/* Réception du pseudo */
 	char pseudo[20];
 	if(recv(socketClientArray[position], pseudo, sizeof(pseudo), 0) == -1)
@@ -83,9 +112,15 @@ void* gestionClient(void* tmp){
 	}
 
 	printf("%s\n", pseudo);
-	//AJOUTER DES SEMAHPORES ICI POUR L'ACCES A LA MEMOIRE PARTAGÉE
+	//semaphore
 	strcpy(sharedStruct->listPseudo[0], pseudo);
-	//j'envoi les pseudos
+
+	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*20*30)!=0){
+			perror("Erreur reception flag");
+			exit(EXIT_FAILURE);
+	}
+	//semaphore
+	struct sembuf opp;
 	int flag; //flag pour savoir si le client quitte l'application
 	do{
 		if(reception_tcp(socketClientArray[position],&flag,sizeof(int))!=0){
@@ -96,6 +131,27 @@ void* gestionClient(void* tmp){
 			//déconnexion à gérer 
 		}
 		else{
+			struct SharedStruct data;
+			if(reception_tcp(socketClientArray[position],&data,sizeof(struct SharedStruct))!=0){
+				perror("Erreur reception flag");
+				exit(EXIT_FAILURE);
+			}
+
+			// semaphore pour modifier le fichier et prévenir
+
+
+			//semaphore pour l'update mais pas pour la modification des données
+			//On donne une ressource à l'update
+			opp.sem_num=position;
+			opp.sem_op=1;
+			opp.sem_flg=0;
+			semop(semID,&opp,1);
+
+			//On attend la fin de l'update
+			opp.sem_num=position;
+			opp.sem_op=0;
+			opp.sem_flg=0;
+			semop(semID,&opp,1);
 
 		}
 
@@ -141,6 +197,20 @@ int main(int argc, char* argv[]){
 		exit(EXIT_FAILURE);
 	}
 
+	//semaphore pour l'update 
+	int semID = semget(key,NB_CLIENT,IPC_CREAT|0666);
+	if(semID==-1){perror("");printf("Erreur création sémaphore \n");return -1;}
+
+
+	union semun egCtrl ;
+	egCtrl.val=0; //nb de personne ayant la ressource en même temps
+
+	for (int i = 0; i < NB_CLIENT; ++i) //
+	{
+		int t = semctl(semID,i,SETVAL, egCtrl);
+		if(t==-1){printf("Erreur initialisation \n");return -1;}
+	}
+
 	//sémaphores ici
 	sharedStruct->nbClients = 0;
 	sharedStruct->nbFichiers = 0;
@@ -181,7 +251,7 @@ int main(int argc, char* argv[]){
 
 
 	printf("Waiting for a connection.\n");
-	if(listen(sock, 10) == -1) //10 client max
+	if(listen(sock, NB_CLIENT) == -1) //10 client max
     {
         perror("Error listen");
         exit(EXIT_FAILURE);
