@@ -140,7 +140,7 @@ void* gestionClient(void* tmp){
 			// semaphore pour modifier le fichier et prévenir
 
 
-			//semaphore pour l'update mais pas pour la modification des données
+			//semaphore pour dire aux autres de s'update
 			//On donne une ressource à l'update
 			opp.sem_num=position;
 			opp.sem_op=1;
@@ -247,6 +247,7 @@ int main(int argc, char* argv[]){
 
     pthread_t* threadClientArray = malloc (MAX * sizeof(pthread_t));
     pthread_t* threadClientUpdateArray = malloc (MAX * sizeof(pthread_t));
+    pthread_t* threadMajAffichageUtiArray = malloc (MAX * sizeof(pthread_t));
     struct InfoClient* infoClient;
 
 
@@ -256,7 +257,7 @@ int main(int argc, char* argv[]){
         perror("Error listen");
         exit(EXIT_FAILURE);
     }
-
+	pid_t pid;
 
     int fils=0;
 	while(fils!=1){
@@ -273,7 +274,7 @@ int main(int argc, char* argv[]){
         nbClients++;
         //memoire partage + semaphore
         printf("New connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
-        pid_t pid = fork();
+        pid = fork();
         if(pid==-1){ //erreur
         	printf("ERROR FORK\n");
         	exit(EXIT_FAILURE);
@@ -282,12 +283,18 @@ int main(int argc, char* argv[]){
 	        /* Création du thread pour le client */
 	        infoClient = malloc(sizeof(struct InfoClient));
 	        init_infoClient(infoClient, socketClientArray, position, id_mem, nbClients);
+
 	      	if(pthread_create(&threadClientArray[position], NULL, gestionClient, infoClient) != 0){
 	      		printf("Erreur ! \n");
 	      		exit(EXIT_FAILURE);
 	      	}
 
 	      	if(pthread_create(&threadClientUpdateArray[position], NULL, update, infoClient) != 0){
+	      		printf("Erreur ! \n");
+	      		exit(EXIT_FAILURE);
+	      	}
+
+	      	if(pthread_create(&threadMajAffichageUtiArray[position], NULL, majAffichageUti, infoClient) != 0){
 	      		printf("Erreur ! \n");
 	      		exit(EXIT_FAILURE);
 	      	}
@@ -301,10 +308,20 @@ int main(int argc, char* argv[]){
 	      		printf("Erreur ! \n");
 	      		exit(EXIT_FAILURE);
 	      	}
-	      	free(threadClientArray);
-	      	free(threadClientUpdateArray);	     
+
+	      	if(pthread_join(threadMajAffichageUtiArray[position],NULL) != 0){
+	      		printf("Erreur ! \n");
+	      		exit(EXIT_FAILURE);
+	      	}
+
 	     } 
 
+	}
+	//on quitte l'application de manière "propre"
+	if(pid!=0 && pid != -1){
+		free(threadClientArray);
+	    free(threadClientUpdateArray);
+	    free(threadMajAffichageUtiArray);
 	}
 
 	exit(EXIT_SUCCESS);
