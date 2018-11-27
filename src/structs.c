@@ -20,7 +20,7 @@
 
 #include <gtk/gtk.h>
 
-int MAX = 20;
+int MAX = 10;
 int NB_CLIENT =10;
 
 typedef struct InfoClient InfoClient;
@@ -35,11 +35,11 @@ struct InfoClient{
 typedef struct SharedStruct SharedStruct;
 struct SharedStruct{
 	int nbClients;
-	int socketClientArray[20];
-	char listPseudo[20][30];
+	int socketClientArray[10];
+	char listPseudo[10][30];
 	int nbFichiers;
 	char fichier[5000];
-	char listFichiers[20][40];
+	char listFichiers[10][40];
 };
 
 union semun {

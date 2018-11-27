@@ -98,9 +98,14 @@ void* gestionClient(void* tmp){
 		exit(EXIT_FAILURE);
 	}
 
-	/* Recuperation du semaphore*/
+	/* Recuperation du semaphore pour l'update */
 	key_t key = ftok("./key.txt", 42);
 	int semID =semget(key,position,0666);
+		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
+
+	/* Recuperation du semaphore pour la mémoire partagé */
+	key_t file = ftok("./file.txt", 42);
+	int semIDFile =semget(key,position,0666);
 		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
 
 	/* Réception du pseudo */
@@ -110,17 +115,27 @@ void* gestionClient(void* tmp){
 		perror("Erreur à la reception du pseudo client");
 		exit(EXIT_FAILURE);
 	}
-
+	struct sembuf opp;
 	printf("%s\n", pseudo);
 	//semaphore
+	opp.sem_num=0;
+	opp.sem_op=-1;
+	opp.sem_flg=0;
+	semop(semIDFile,&opp,1);
+
 	strcpy(sharedStruct->listPseudo[0], pseudo);
+
+	opp.sem_num=0;
+	opp.sem_op=1;
+	opp.sem_flg=0;
+	semop(semIDFile,&opp,1);
 
 	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*20*30)!=0){
 			perror("Erreur reception flag");
 			exit(EXIT_FAILURE);
 	}
 	//semaphore
-	struct sembuf opp;
+
 	int flag; //flag pour savoir si le client quitte l'application
 	do{
 		if(reception_tcp(socketClientArray[position],&flag,sizeof(int))!=0){
@@ -137,8 +152,18 @@ void* gestionClient(void* tmp){
 				exit(EXIT_FAILURE);
 			}
 
-			// semaphore pour modifier le fichier et prévenir
+			// semaphore pour modifier le fichier
+			opp.sem_num=0;
+			opp.sem_op=-1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
 
+			strcpy(sharedStruct->fichier, data.fichier);
+
+	        opp.sem_num=0;
+			opp.sem_op=1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
 
 			//semaphore pour dire aux autres de s'update
 			//On donne une ressource à l'update
@@ -178,6 +203,13 @@ int main(int argc, char* argv[]){
 	key_t key, file, maj;
 	int id_mem;
 
+	//clef pour le sémaphore du fichier
+	if((file = ftok("./file.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
 	/* --------------------------------------------------------------------------------------------------------- */
 
 	//clef pour la sémaphore qui dit aux autres de s'update 
@@ -187,7 +219,7 @@ int main(int argc, char* argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	if((id_mem = shmget(key, sizeof(struct SharedStruct), IPC_CREAT|0666)) == -1){
+	if((id_mem = shmget(file, sizeof(struct SharedStruct), IPC_CREAT|0666)) == -1){
 		fprintf(stderr, "Erreur lors de la création de la mémoire.(Mémoire possiblement déjà existante)\n");
 		perror("");
 		exit(EXIT_FAILURE);
@@ -215,13 +247,6 @@ int main(int argc, char* argv[]){
 	}
 
 	/* --------------------------------------------------------------------------------------------------------- */
-
-	//clef pour le sémaphore du fichier
-	if((file = ftok("./file.txt", 42)) == -1){
-		fprintf(stderr, "Erreur lors de l'assignation de la clé.\n");
-		perror("");
-		exit(EXIT_FAILURE);
-	}
 
 	//semaphore pour le file donc des données partagées
 	int semIDFile = semget(file,1,IPC_CREAT|0666);
@@ -259,13 +284,8 @@ int main(int argc, char* argv[]){
 
 	//Initialisation de la mémoire partagée ( pas besoin de sémaphore ici )
 	sharedStruct->nbClients = 0;
-	sharedStruct->nbFichiers = 0;
+	sharedStruct->nbFichiers = 1;
 
-
-	if(shmctl(id_mem, IPC_RMID, NULL) == -1){
-		perror("Erreur lors du détachement de la mémoire partagée.");
-		exit(EXIT_FAILURE);
-	}
 
 	/* --------------------------------------------------------------------------------------------------------- */
 
@@ -305,7 +325,7 @@ int main(int argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
 	pid_t pid;
-
+	struct sembuf opp;
     int fils=0;
 	while(fils!=1){
 
@@ -317,9 +337,23 @@ int main(int argc, char* argv[]){
             perror("Error accept");
             exit(EXIT_FAILURE);
         }
+
         //memoire partage + semaphore
+        opp.sem_num=0;
+		opp.sem_op=-1;
+		opp.sem_flg=0;
+		semop(semIDFile,&opp,1);
+
         nbClients++;
+        sharedStruct->nbClients=nbClients;
+
+
+        opp.sem_num=0;
+		opp.sem_op=1;
+		opp.sem_flg=0;
+		semop(semIDFile,&opp,1);
         //memoire partage + semaphore
+
         printf("New connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
         pid = fork();
         if(pid==-1){ //erreur
@@ -366,6 +400,12 @@ int main(int argc, char* argv[]){
 	}
 	//on quitte l'application de manière "propre"
 	if(pid!=0 && pid != -1){
+
+		if(shmctl(id_mem, IPC_RMID, NULL) == -1){
+			perror("Erreur lors du détachement de la mémoire partagée.");
+			exit(EXIT_FAILURE);
+		}
+
 		free(threadClientArray);
 	    free(threadClientUpdateArray);
 	    free(threadMajAffichageUtiArray);
