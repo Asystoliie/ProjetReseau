@@ -39,7 +39,7 @@ GtkWidget* init_menu(ClientLeaveStruct* socketStruct){
 	pVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	zone = gtk_fixed_new ();
 
-	pButton[0] = gtk_button_new_with_label("Nouveau");
+	pButton[0] = gtk_button_new_with_label("Update");
 	pButton[1] = gtk_button_new_with_label("Rejoindre");
 	pButton[2] = gtk_button_new_with_label("Quitter");
 
@@ -77,18 +77,6 @@ GtkTreeStore* init_users(GtkWidget* ListBox){
 	   N_COLUMNS
 	};
 
-	gtk_tree_store_append (store_Utilisateurs, &iter1, NULL);
-	gtk_tree_store_set (store_Utilisateurs, &iter1,
-                    USER_COLUMN, "Robert",
-                    NUMBER_COLUMN, 1,
-                    -1);
-
-	gtk_tree_store_append (store_Utilisateurs, &iter1, NULL);
-	gtk_tree_store_set (store_Utilisateurs, &iter1,
-                    USER_COLUMN, "Julie",
-                    NUMBER_COLUMN, 2,
-                    -1);
-
   tree_Utilisateurs = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_Utilisateurs));
 
   renderer = gtk_cell_renderer_text_new();
@@ -109,7 +97,7 @@ GtkTreeStore* init_users(GtkWidget* ListBox){
  	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_Utilisateurs);
 
  	GtkWidget *zone_tree;
- 	zone_tree = gtk_fixed_new ();
+ 	zone_tree = gtk_fixed_new();
  	gtk_fixed_put(GTK_FIXED(zone_tree), scrolled_window, 50, 50);
 
   gtk_container_add(GTK_CONTAINER(ListBox), zone_tree);
@@ -117,71 +105,28 @@ GtkTreeStore* init_users(GtkWidget* ListBox){
  	return store_Utilisateurs;
 }
 
-GtkWidget* init_files(){
-  GtkTreeStore * store_Files = NULL;
-  GtkWidget *tree_Files = NULL;
-  GtkCellRenderer *renderer = NULL;
-  GtkTreeViewColumn *column = NULL;
-  GtkWidget * scrolled_window = NULL;
+GtkWidget* init_files(GtkTextBuffer *buffer){
+  GtkWidget *scrolled_window = NULL;
+  GtkWidget *text_view = NULL;
 
   scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), 
+                                  GTK_POLICY_AUTOMATIC, 
+                                  GTK_POLICY_AUTOMATIC);
   gtk_widget_set_size_request(scrolled_window, 500, 600);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
 
-  /* Liste utilisateurs */
-  store_Files = gtk_tree_store_new(3, G_TYPE_STRING, G_TYPE_INT, G_TYPE_STRING);
-  GtkTreeIter iter1;
+  text_view = gtk_text_view_new_with_buffer (buffer);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD); 
 
-  enum
-  {
-     NAME_COLUMN,
-     NUMBER_COLUMN,
-     OWNER_COLUMN,
-     N_COLUMNS
-  };
+  gtk_container_add (GTK_CONTAINER (scrolled_window), 
+                                         text_view);
 
-  gtk_tree_store_append (store_Files, &iter1, NULL);
-  gtk_tree_store_set (store_Files, &iter1,
-                    NAME_COLUMN, "Récapitulatif réunion 1",
-                    NUMBER_COLUMN, 1,
-                    OWNER_COLUMN, "Robert",
-                    -1);
-
-  gtk_tree_store_append (store_Files, &iter1, NULL);
-  gtk_tree_store_set (store_Files, &iter1,
-                    NAME_COLUMN, "Récapitulatif réunion 2",
-                    NUMBER_COLUMN, 6,
-                    OWNER_COLUMN, "Pierre",
-                    -1);
-
-    tree_Files = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_Files));
-
-    renderer = gtk_cell_renderer_text_new();
-    g_object_set (G_OBJECT (renderer),
-                 "foreground", "black",
-                 NULL);
-
-    column = gtk_tree_view_column_new_with_attributes ("Nom", renderer,
-                                                      "text", NAME_COLUMN,
-                                                      NULL);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree_Files), column);
-
-    column = gtk_tree_view_column_new_with_attributes ("Nombre de participants", renderer,
-                                                      "text", NUMBER_COLUMN,
-                                                      NULL);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree_Files), column);
-
-    column = gtk_tree_view_column_new_with_attributes ("Propriétaire", renderer,
-                                                      "text", OWNER_COLUMN,
-                                                      NULL);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree_Files), column);
-
-    gtk_container_add(GTK_CONTAINER(scrolled_window), tree_Files);
-
-    GtkWidget *zone_tree;
-    zone_tree = gtk_fixed_new ();
-    gtk_fixed_put(GTK_FIXED(zone_tree), scrolled_window, 175, 50);
+  GtkWidget *zone_file;
+  zone_file = gtk_fixed_new ();
+  gtk_fixed_put(GTK_FIXED(zone_file), scrolled_window, 175, 50);
     
-    return zone_tree;
+  return zone_file;
 }
 
 void init_pseudo_box(GtkWidget* MainWindow, char* result){

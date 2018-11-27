@@ -126,27 +126,32 @@ int main(int argc, char **argv)
     GtkTreeStore *store_Utilisateurs = init_users(ListBox);
 
     /* Initialisation du menu */
-    printf("qsdqsdqsd\n");
     GtkWidget *zone_menu = init_menu(socketStruct);
     gtk_container_add(GTK_CONTAINER(ListBox), zone_menu);
-    printf("qsdqsdqsd\n");
 
     /* Initialisation des fichiers */
-    GtkWidget *zone_files = init_files();
+    GtkTextBuffer *buffer = gtk_text_buffer_new (NULL);
+    GtkWidget *zone_files = init_files(buffer);
     gtk_container_add(GTK_CONTAINER(MainBox), zone_files);
     gtk_container_add(GTK_CONTAINER(MainWindow), MainBox);
 
     /* Choix du nom utilisateur */
-    char pseudo[20];
+    char pseudo[30];
     init_pseudo_box(MainWindow, pseudo);
 
 
     /*==================== COMMUNICATION ==================== */
 
-    /* Envoie du pseudo */
+    /* Envoie du pseudo + affichage des utilisateurs*/
     if(send(dS, pseudo, sizeof(pseudo), 0) == -1)
 	{
 		perror("Erreur lors de l'envoi du pseudo utilisateur");
+		exit(EXIT_FAILURE);
+	}
+
+	char listPseudo[10][30];
+	if(reception_tcp(dS,listPseudo,sizeof(char)*10*30)!=0){
+		perror("Erreur reception listPseudo");
 		exit(EXIT_FAILURE);
 	}
 
@@ -158,13 +163,32 @@ int main(int argc, char **argv)
 	};
 
 	GtkTreeIter iter1;
-
-	gtk_tree_store_append (store_Utilisateurs, &iter1, NULL);
-	gtk_tree_store_set (store_Utilisateurs, &iter1,
-                    USER_COLUMN, pseudo,
-                    NUMBER_COLUMN, 2,
-                    -1);
+	for(int i = 0; i < NB_CLIENT; i++){
+		if(strlen(listPseudo[i]) != 0){
+			gtk_tree_store_append (store_Utilisateurs, &iter1, NULL);
+			gtk_tree_store_set (store_Utilisateurs, &iter1,
+		                    USER_COLUMN, listPseudo[i],
+		                    NUMBER_COLUMN, 0,
+		                    -1);
+		}
+	}
 	/*--------------------*/
+
+	/* Reception du buffer*/
+
+	char fichier[5000];
+	if(reception_tcp(dS,fichier,sizeof(fichier))!=0){
+		perror("Erreur reception du fichier");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("%s\n", fichier);
+
+	GtkTextIter iter;
+	gtk_text_buffer_get_iter_at_offset(buffer, &iter, 0);
+	gtk_text_buffer_insert(buffer, &iter, fichier, -1);
+	/*--------------------*/	
+
 
 	printf("test\n");
 

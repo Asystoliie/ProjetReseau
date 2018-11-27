@@ -242,7 +242,7 @@ void* gestionClient(void* tmp){
 
 	//envoi liste pseudo 
 
-	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*20*30)!=0){
+	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*10*30)!=0){
 			perror("Erreur envoi liste pseudo");
 			exit(EXIT_FAILURE);
 	}
@@ -423,6 +423,7 @@ int main(int argc, char* argv[]){
 
 	//Initialisation de la mémoire partagée ( pas besoin de sémaphore ici )
 	sharedStruct->nbClients = 0;
+	strcpy(sharedStruct->fichier, "blasqsqdqs");
 
 	/* --------------------------------------------------------------------------------------------------------- */
 
