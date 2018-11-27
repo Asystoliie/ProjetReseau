@@ -175,9 +175,12 @@ int main(int argc, char* argv[]){
     }
 
 	/* Init shared memory*/
-	key_t key;
+	key_t key, file, maj;
 	int id_mem;
 
+	/* --------------------------------------------------------------------------------------------------------- */
+
+	//clef pour la sémaphore qui dit aux autres de s'update 
 	if((key = ftok("./key.txt", 42)) == -1){
 		fprintf(stderr, "Erreur lors de l'assignation de la clé.\n");
 		perror("");
@@ -211,16 +214,60 @@ int main(int argc, char* argv[]){
 		if(t==-1){printf("Erreur initialisation \n");return -1;}
 	}
 
-	//sémaphores ici
+	/* --------------------------------------------------------------------------------------------------------- */
+
+	//clef pour le sémaphore du fichier
+	if((file = ftok("./file.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
+	//semaphore pour le file donc des données partagées
+	int semIDFile = semget(file,1,IPC_CREAT|0666);
+	if(semIDFile==-1){perror("");printf("Erreur création sémaphore \n");return -1;}
+
+	egCtrl.val=1;
+
+	int t = semctl(semIDFile,0,SETVAL, egCtrl);
+	if(t==-1){printf("Erreur initialisation \n");return -1;}
+
+	/* --------------------------------------------------------------------------------------------------------- */
+
+
+	//clef pour le semaphore pour la maj uti
+	if((maj = ftok("./maj.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
+	//semaphore pour la maj uti
+	int semIDMaj = semget(maj,NB_CLIENT,IPC_CREAT|0666);
+	if(semIDMaj==-1){perror("");printf("Erreur création sémaphore \n");return -1;}
+
+
+	egCtrl.val=0; //nb de personne ayant la ressource en même temps
+
+	for (int i = 0; i < NB_CLIENT; ++i) //
+	{
+		int t = semctl(semIDMaj,i,SETVAL, egCtrl);
+		if(t==-1){printf("Erreur initialisation \n");return -1;}
+	}
+
+	/* --------------------------------------------------------------------------------------------------------- */
+
+	//Initialisation de la mémoire partagée ( pas besoin de sémaphore ici )
 	sharedStruct->nbClients = 0;
 	sharedStruct->nbFichiers = 0;
-	//sémpahores ici
+
+
 	if(shmctl(id_mem, IPC_RMID, NULL) == -1){
 		perror("Erreur lors du détachement de la mémoire partagée.");
 		exit(EXIT_FAILURE);
 	}
 
-	/* ------------------------------------ */
+	/* --------------------------------------------------------------------------------------------------------- */
 
 	/* Init sockets */
 	int sock;
