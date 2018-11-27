@@ -104,8 +104,10 @@ int main(int argc, char **argv)
     gtk_window_set_position(GTK_WINDOW(MainWindow), GTK_WIN_POS_CENTER);
     gtk_widget_override_background_color(MainWindow, GTK_STATE_NORMAL, &color);
 
-    printf("socket = %i\n", dS);
-    g_signal_connect(G_OBJECT(MainWindow), "delete-event", G_CALLBACK(clientLeave), (gpointer) &dS);
+    ClientLeaveStruct* socketStruct = malloc(sizeof(ClientLeaveStruct));
+    socketStruct->socket = dS;
+
+    g_signal_connect(G_OBJECT(MainWindow), "delete-event", G_CALLBACK(clientLeave), (gpointer) socketStruct);
     
 
     MainBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
@@ -124,8 +126,10 @@ int main(int argc, char **argv)
     GtkTreeStore *store_Utilisateurs = init_users(ListBox);
 
     /* Initialisation du menu */
-    GtkWidget *zone_menu = init_menu();
+    printf("qsdqsdqsd\n");
+    GtkWidget *zone_menu = init_menu(socketStruct);
     gtk_container_add(GTK_CONTAINER(ListBox), zone_menu);
+    printf("qsdqsdqsd\n");
 
     /* Initialisation des fichiers */
     GtkWidget *zone_files = init_files();

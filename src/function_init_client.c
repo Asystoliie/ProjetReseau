@@ -20,18 +20,18 @@
 
 #include <gtk/gtk.h>
 
-void clientLeave(GtkWidget *widget, gpointer socket){
+void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   int flag = 0;
-  int *sock = socket;
-  printf("socket = %i\n", socket);
-  g_print("%d", *sock);
-  if(envoi_tcp(*sock, &flag, sizeof(flag)) != 0){
+  ClientLeaveStruct* socketStruct = ptr;
+  if(envoi_tcp(socketStruct->socket, &flag, sizeof(flag)) != 0){
     perror("Erreur lors de l'envoi du flag 0 de deconnexion");
     exit(EXIT_FAILURE);
   }
+  free(socketStruct);
+  exit(1);
 }
 
-GtkWidget* init_menu(){
+GtkWidget* init_menu(ClientLeaveStruct* socketStruct){
 	GtkWidget *pButton[3];
 	GtkWidget *pVBox;
 	GtkWidget *zone;
@@ -46,6 +46,8 @@ GtkWidget* init_menu(){
 	gtk_box_pack_start(GTK_BOX(pVBox), pButton[0], TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(pVBox), pButton[1], TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(pVBox), pButton[2], TRUE, TRUE, 0);
+
+  g_signal_connect(G_OBJECT(pButton[2]), "clicked", G_CALLBACK(clientLeave), (gpointer) socketStruct);
 
 	gtk_widget_set_size_request(pVBox, 300, 150);
 	gtk_fixed_put(GTK_FIXED(zone), pVBox, 100, 100);

@@ -47,3 +47,8 @@ union semun {
 	struct seminfo *__buf;
 };
 
+typedef struct ClientLeaveStruct ClientLeaveStruct;
+struct ClientLeaveStruct{
+	int socket;
+};
+

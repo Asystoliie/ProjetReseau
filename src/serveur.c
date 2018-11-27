@@ -268,6 +268,7 @@ void* gestionClient(void* tmp){
 			perror("Erreur reception flag");
 			exit(EXIT_FAILURE);
 		}
+		printf("flag = %i\n", flag);
 		if(flag==0){ //déconnexion !
 			opp.sem_num=0;
 			opp.sem_op=-1;
@@ -480,8 +481,8 @@ int main(int argc, char* argv[]){
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
 
-        nbClients++;
-        sharedStruct->nbClients=nbClients;
+        sharedStruct->nbClients++;
+        nbClients=sharedStruct->nbClients++;
 
         opp.sem_num=0;
 		opp.sem_op=1;
