@@ -55,13 +55,47 @@ void* update(void * tmp){
 
 	InfoClient* infoClient = tmp;
 	int position = infoClient->position;
+	int* socketClientArray = infoClient->socketClientArray;
 
 	struct sembuf opp;
 
+	/* Liaison à la mémoire partagée */
+	struct SharedStruct* sharedStruct = NULL;
+	sharedStruct = (SharedStruct*) shmat(infoClient->id_mem, NULL, 0);
+	if(sharedStruct == NULL){
+		perror("Erreur lors de la liaison à la mémoire partagée");
+		exit(EXIT_FAILURE);
+	}
+
+	key_t key,maj,file;
+	if((file = ftok("./file.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé key.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+	int semIDFile =semget(file,0,0666);
+		if(semIDFile==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
+
 	/* Recuperation du semaphore*/
-	key_t key = ftok("./key.txt", 42);
+
+	if((key = ftok("./key.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé key.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
 	int semID =semget(key,position,0666);
 		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
+
+	if((maj = ftok("./maj.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé maj.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
+	//semaphore pour la maj uti
+	int semIDMaj = semget(maj,MAX,0666);
+	if(semIDMaj==-1){perror("");printf("Erreur sémaphore \n");exit(EXIT_FAILURE);}
 
 
 	do{
@@ -71,16 +105,96 @@ void* update(void * tmp){
 		opp.sem_flg=0;
 		semop(semID,&opp,1);
 
-		//dit aux autres de s'update
+		opp.sem_num=position;
+		opp.sem_op=-1;
+		opp.sem_flg=0;
+		semop(semIDFile,&opp,1);
+
+		for (int i = 0; i < MAX; ++i) //
+		{
+			if(sharedStruct->socketClientArray[i]!=-1){
+				opp.sem_num=i;
+				opp.sem_op=1;
+				opp.sem_flg=0;
+				semop(semIDMaj,&opp,1);
+			}
+		}
+
+		opp.sem_num=position;
+		opp.sem_op=1;
+		opp.sem_flg=0;
+		semop(semIDFile,&opp,1);
 
 
 	}while(1);
 
 }
-
+//attend un update des autres clients
+//mise à jour client
 void* majAffichageUti(void * tmp){
-	//attend un update des autres clients
-	//mise à jour client
+	InfoClient* infoClient = tmp;
+
+	int position = infoClient->position;
+	int* socketClientArray = infoClient->socketClientArray;
+
+	/* Liaison à la mémoire partagée */
+	struct SharedStruct* sharedStruct = NULL;
+	sharedStruct = (SharedStruct*) shmat(infoClient->id_mem, NULL, 0);
+	if(sharedStruct == NULL){
+		perror("Erreur lors de la liaison à la mémoire partagée");
+		exit(EXIT_FAILURE);
+	}
+
+
+	key_t file,maj;
+
+	if((maj = ftok("./maj.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé maj.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
+	//semaphore pour la maj uti
+
+
+	int semIDMaj = semget(maj,MAX,0666);
+	if(semIDMaj==-1){perror("");printf("Erreur sémaphore \n");exit(EXIT_FAILURE);}
+
+	if((file = ftok("./file.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé key.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+	int semIDFile =semget(file,0,0666);
+		if(semIDFile==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
+
+	struct sembuf opp;
+
+	do{
+
+		opp.sem_num=position;
+		opp.sem_op=-1;
+		opp.sem_flg=0;
+		semop(semIDMaj,&opp,1);
+
+			opp.sem_num=0;
+			opp.sem_op=-1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
+
+			if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
+				perror("Erreur reception flag");
+				exit(EXIT_FAILURE);
+			}
+
+			opp.sem_num=0;
+			opp.sem_op=1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
+
+
+	}while(1);
+
 }
 
 void* gestionClient(void* tmp){
@@ -105,7 +219,7 @@ void* gestionClient(void* tmp){
 
 	/* Recuperation du semaphore pour la mémoire partagé */
 	key_t file = ftok("./file.txt", 42);
-	int semIDFile =semget(key,position,0666);
+	int semIDFile =semget(file,0,0666);
 		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
 
 	/* Réception du pseudo */
@@ -125,15 +239,27 @@ void* gestionClient(void* tmp){
 
 	strcpy(sharedStruct->listPseudo[0], pseudo);
 
+
+	//envoi liste pseudo 
+
+	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*20*30)!=0){
+			perror("Erreur envoi liste pseudo");
+			exit(EXIT_FAILURE);
+	}
+
+
+    //envoi du fichier à la 1er connexion
+
+    if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
+		perror("Erreur reception flag");
+		exit(EXIT_FAILURE);
+	}
+
 	opp.sem_num=0;
 	opp.sem_op=1;
 	opp.sem_flg=0;
 	semop(semIDFile,&opp,1);
 
-	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*20*30)!=0){
-			perror("Erreur reception flag");
-			exit(EXIT_FAILURE);
-	}
 	//semaphore
 
 	int flag; //flag pour savoir si le client quitte l'application
@@ -142,13 +268,25 @@ void* gestionClient(void* tmp){
 			perror("Erreur reception flag");
 			exit(EXIT_FAILURE);
 		}
-		if(flag==0){
-			//déconnexion à gérer 
+		if(flag==0){ //déconnexion !
+			opp.sem_num=0;
+			opp.sem_op=-1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
+
+			sharedStruct->nbClients--;
+			sharedStruct->socketClientArray[position]=-1;
+			memset (sharedStruct->listPseudo[position], 0, sizeof (socketClientArray[position]));
+
+			opp.sem_num=0;
+			opp.sem_op=1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
 		}
 		else{
-			struct SharedStruct data;
-			if(reception_tcp(socketClientArray[position],&data,sizeof(struct SharedStruct))!=0){
-				perror("Erreur reception flag");
+			char fichier[5000];
+			if(reception_tcp(socketClientArray[position],fichier,sizeof(fichier))!=0){
+				perror("Erreur reception fichier");
 				exit(EXIT_FAILURE);
 			}
 
@@ -158,7 +296,7 @@ void* gestionClient(void* tmp){
 			opp.sem_flg=0;
 			semop(semIDFile,&opp,1);
 
-			strcpy(sharedStruct->fichier, data.fichier);
+			strcpy(sharedStruct->fichier, fichier);
 
 	        opp.sem_num=0;
 			opp.sem_op=1;
@@ -284,8 +422,6 @@ int main(int argc, char* argv[]){
 
 	//Initialisation de la mémoire partagée ( pas besoin de sémaphore ici )
 	sharedStruct->nbClients = 0;
-	sharedStruct->nbFichiers = 1;
-
 
 	/* --------------------------------------------------------------------------------------------------------- */
 
@@ -347,7 +483,6 @@ int main(int argc, char* argv[]){
         nbClients++;
         sharedStruct->nbClients=nbClients;
 
-
         opp.sem_num=0;
 		opp.sem_op=1;
 		opp.sem_flg=0;
@@ -381,16 +516,6 @@ int main(int argc, char* argv[]){
 	      	}
 
 	      	if(pthread_join(threadClientArray[position],NULL) != 0){
-	      		printf("Erreur ! \n");
-	      		exit(EXIT_FAILURE);
-	      	}
-
-	      	if(pthread_join(threadClientUpdateArray[position],NULL) != 0){
-	      		printf("Erreur ! \n");
-	      		exit(EXIT_FAILURE);
-	      	}
-
-	      	if(pthread_join(threadMajAffichageUtiArray[position],NULL) != 0){
 	      		printf("Erreur ! \n");
 	      		exit(EXIT_FAILURE);
 	      	}

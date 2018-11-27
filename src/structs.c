@@ -37,9 +37,7 @@ struct SharedStruct{
 	int nbClients;
 	int socketClientArray[10];
 	char listPseudo[10][30];
-	int nbFichiers;
 	char fichier[5000];
-	char listFichiers[10][40];
 };
 
 union semun {
