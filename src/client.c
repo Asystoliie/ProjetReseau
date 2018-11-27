@@ -21,8 +21,8 @@
 #include <gtk/gtk.h>
 
 #include "structs.c"
-#include "function_init_client.c"
 #include "function.c"
+#include "function_init_client.c"
 
 
 int main(int argc, char **argv)
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 	}
 
 	// Initialisation structure socket
-	struct sockaddr_in aD ;
+	struct sockaddr_in aD;
 	aD.sin_family = AF_INET ;
 
 	// Stockage ip dans la struct
@@ -103,7 +103,9 @@ int main(int argc, char **argv)
     gtk_window_resize (GTK_WINDOW(MainWindow), 1000, 800);
     gtk_window_set_position(GTK_WINDOW(MainWindow), GTK_WIN_POS_CENTER);
     gtk_widget_override_background_color(MainWindow, GTK_STATE_NORMAL, &color);
-    g_signal_connect(G_OBJECT(MainWindow), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
+
+    printf("socket = %i\n", dS);
+    g_signal_connect(G_OBJECT(MainWindow), "delete-event", G_CALLBACK(clientLeave), (gpointer) &dS);
     
 
     MainBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);

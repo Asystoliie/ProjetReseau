@@ -20,6 +20,17 @@
 
 #include <gtk/gtk.h>
 
+void clientLeave(GtkWidget *widget, gpointer socket){
+  int flag = 0;
+  int *sock = socket;
+  printf("socket = %i\n", socket);
+  g_print("%d", *sock);
+  if(envoi_tcp(*sock, &flag, sizeof(flag)) != 0){
+    perror("Erreur lors de l'envoi du flag 0 de deconnexion");
+    exit(EXIT_FAILURE);
+  }
+}
+
 GtkWidget* init_menu(){
 	GtkWidget *pButton[3];
 	GtkWidget *pVBox;
