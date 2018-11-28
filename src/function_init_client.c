@@ -22,16 +22,35 @@
 
 void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   int flag = 0;
-  ClientLeaveStruct* socketStruct = ptr;
+  ClientStruct* socketStruct = ptr;
   if(envoi_tcp(socketStruct->socket, &flag, sizeof(flag)) != 0){
     perror("Erreur lors de l'envoi du flag 0 de deconnexion");
     exit(EXIT_FAILURE);
   }
   free(socketStruct);
-  exit(1);
+  exit(0);
 }
 
-GtkWidget* init_menu(ClientLeaveStruct* socketStruct){
+void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
+  ClientStruct* socketStruct = ptr;
+  int flag = 1;
+  if(envoi_tcp(socketStruct->socket, &flag, sizeof(flag)) != 0){
+    perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
+    exit(EXIT_FAILURE);
+  }
+
+  if(envoi_tcp(socketStruct->socket, socketStruct->fichier, sizeof(char)*5000) != 0){
+    perror("Erreur lors de l'envoi du fichier au serveur");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("j'arrive ici\n");
+  free(socketStruct);
+}
+
+
+
+GtkWidget* init_menu(ClientStruct* socketStruct){
 	GtkWidget *pButton[3];
 	GtkWidget *pVBox;
 	GtkWidget *zone;
@@ -119,14 +138,35 @@ GtkWidget* init_files(GtkTextBuffer *buffer){
   text_view = gtk_text_view_new_with_buffer (buffer);
   gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD); 
 
-  gtk_container_add (GTK_CONTAINER (scrolled_window), 
-                                         text_view);
+  gtk_container_add (GTK_CONTAINER (scrolled_window), text_view);
 
   GtkWidget *zone_file;
   zone_file = gtk_fixed_new ();
   gtk_fixed_put(GTK_FIXED(zone_file), scrolled_window, 175, 50);
     
   return zone_file;
+}
+
+GtkWidget* init_update(char* fichier, int socket){
+  GtkWidget *pButton;
+  GtkWidget *zone;
+  GtkWidget *pVBox;
+
+  zone = gtk_fixed_new ();
+  pVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+  pButton = gtk_button_new_with_label("Update");
+  gtk_box_pack_start(GTK_BOX(pVBox), pButton, FALSE, FALSE, 0);
+
+  ClientStruct* socketStruct = malloc(sizeof(ClientStruct));
+  socketStruct->socket = socket;
+  socketStruct->fichier = fichier;
+  g_signal_connect(G_OBJECT(pButton), "clicked", G_CALLBACK(clientUpdate), (gpointer) socketStruct);
+
+  gtk_widget_set_size_request(pVBox, 500, 150);
+  gtk_fixed_put(GTK_FIXED(zone), pVBox, 175, 0);
+
+  return zone;
 }
 
 void init_pseudo_box(GtkWidget* MainWindow, char* result){

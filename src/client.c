@@ -24,6 +24,33 @@
 #include "function.c"
 #include "function_init_client.c"
 
+void* gestionFichier(void* tmp){
+	ClientStruct* clientStruct = tmp;
+	int socket = clientStruct->socket;
+
+	int flag;
+	do{
+		printf("Thread gestion fichier en attente...\n");
+		if(reception_tcp(socket,&flag,sizeof(int))!=0){
+			perror("Erreur reception flag fichier");
+			exit(EXIT_FAILURE);
+		}
+		printf("flag = %i\n", flag);
+		printf("reception !\n");
+		if(flag==1){
+			char fichier[5000];
+			if(reception_tcp(socket,fichier,sizeof(fichier))!=0){
+				perror("Erreur reception fichier");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("fichier = %s\n", fichier);
+
+			strcpy(clientStruct->fichier, fichier);
+		}
+	}while(flag!=0);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -74,19 +101,11 @@ int main(int argc, char **argv)
 	}	
 	printf("Connecté.\n");
 
-	/* Réception de la clé mémoire + connexion*/
-	/*int id_mem;
-	if(recv(dS, &id_mem, sizeof(id_mem), 0) == -1)
-	{
-		perror("Erreur à la reception du message client");
-		exit(EXIT_FAILURE);
-	}
-	printf("clé mémoire = %i\n", id_mem);*/
-
     /* Variables */
     GtkWidget * MainWindow = NULL;
     GtkWidget * MainBox = NULL;
-    GtkWidget * ListBox = NULL;
+    GtkWidget * ListBoxG = NULL;
+    GtkWidget * ListBoxD = NULL;
     GdkRGBA color;
     color.red = 0.5;
     color.blue = 0.5;
@@ -104,9 +123,8 @@ int main(int argc, char **argv)
     gtk_window_set_position(GTK_WINDOW(MainWindow), GTK_WIN_POS_CENTER);
     gtk_widget_override_background_color(MainWindow, GTK_STATE_NORMAL, &color);
 
-    ClientLeaveStruct* socketStruct = malloc(sizeof(ClientLeaveStruct));
+    ClientStruct* socketStruct = malloc(sizeof(ClientStruct));
     socketStruct->socket = dS;
-
     g_signal_connect(G_OBJECT(MainWindow), "delete-event", G_CALLBACK(clientLeave), (gpointer) socketStruct);
     
 
@@ -115,24 +133,38 @@ int main(int argc, char **argv)
     gtk_widget_set_size_request(MainBox, 1200, 700);
     gtk_widget_show(MainBox);
 
-    ListBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-    gtk_container_set_border_width(GTK_CONTAINER(ListBox), 5);
-    gtk_widget_set_size_request(ListBox, 450, 400);
-    gtk_widget_show(ListBox);
-    gtk_container_add(GTK_CONTAINER(MainBox), ListBox);
+    ListBoxG = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_container_set_border_width(GTK_CONTAINER(ListBoxG), 5);
+    gtk_widget_set_size_request(ListBoxG, 450, 400);
+    gtk_widget_show(ListBoxG);
+    gtk_container_add(GTK_CONTAINER(MainBox), ListBoxG);
+
+    ListBoxD = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_container_set_border_width(GTK_CONTAINER(ListBoxD), 5);
+    gtk_widget_set_size_request(ListBoxD, 450, 400);
+    gtk_widget_show(ListBoxD);
+    gtk_container_add(GTK_CONTAINER(MainBox), ListBoxD);
 
 
     /* Initialisation des utilisateurs */
-    GtkTreeStore *store_Utilisateurs = init_users(ListBox);
+    GtkTreeStore *store_Utilisateurs = init_users(ListBoxG);
 
     /* Initialisation du menu */
     GtkWidget *zone_menu = init_menu(socketStruct);
-    gtk_container_add(GTK_CONTAINER(ListBox), zone_menu);
+    gtk_container_add(GTK_CONTAINER(ListBoxG), zone_menu);
 
-    /* Initialisation des fichiers */
+
     GtkTextBuffer *buffer = gtk_text_buffer_new (NULL);
+    /* Initialisation des fichiers */
     GtkWidget *zone_files = init_files(buffer);
-    gtk_container_add(GTK_CONTAINER(MainBox), zone_files);
+    gtk_container_add(GTK_CONTAINER(ListBoxD), zone_files);
+
+    /* Initialisation du bouton update */
+    char fichier[5000];
+    GtkWidget *zone_update = init_update(fichier, dS);
+    gtk_container_add(GTK_CONTAINER(ListBoxD), zone_update);
+
+    /* Construction de l'interface */
     gtk_container_add(GTK_CONTAINER(MainWindow), MainBox);
 
     /* Choix du nom utilisateur */
@@ -175,23 +207,40 @@ int main(int argc, char **argv)
 	/*--------------------*/
 
 	/* Reception du buffer*/
-
-	char fichier[5000];
 	if(reception_tcp(dS,fichier,sizeof(fichier))!=0){
 		perror("Erreur reception du fichier");
 		exit(EXIT_FAILURE);
 	}
 
-	printf("%s\n", fichier);
-
 	GtkTextIter iter;
 	gtk_text_buffer_get_iter_at_offset(buffer, &iter, 0);
 	gtk_text_buffer_insert(buffer, &iter, fichier, -1);
+
+	int verif = 1;
+	printf("dS = %d\n", dS);
+	if(send(dS, &verif, sizeof(verif), 0) ==-1){
+		perror("Erreur envoie verification");
+		exit(EXIT_FAILURE);
+	}
 	/*--------------------*/	
 
+	/* Creation des threads */
+	pthread_t* threadClientArray = malloc (2 * sizeof(pthread_t));
 
-	printf("test\n");
+	// Thread reception fichier
+	ClientStruct* fichierStruct = malloc(sizeof(ClientStruct));
+	fichierStruct->socket = dS;
+	fichierStruct->fichier = fichier;
+	if(pthread_create(&threadClientArray[0], NULL, gestionFichier, fichierStruct) != 0){
+  		printf("Erreur thread fichier! \n");
+  		exit(EXIT_FAILURE);
+  	}
 
+	// Thread reception utilisateurs
+	/*if(pthread_create(&threadClientArray[1], NULL, gestionClient, infoClient) != 0){
+  		printf("Erreur thread utilisateur! \n");
+  		exit(EXIT_FAILURE);
+  	}*/
 
 	/* Affichage et boucle évènementielle */
     gtk_main();

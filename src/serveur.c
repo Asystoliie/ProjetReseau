@@ -177,21 +177,28 @@ void* majAffichageUti(void * tmp){
 		opp.sem_flg=0;
 		semop(semIDMaj,&opp,1);
 
-			opp.sem_num=0;
-			opp.sem_op=-1;
-			opp.sem_flg=0;
-			semop(semIDFile,&opp,1);
+		opp.sem_num=0;
+		opp.sem_op=-1;
+		opp.sem_flg=0;
+		semop(semIDFile,&opp,1);
 
-			if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
-				perror("Erreur reception flag");
-				exit(EXIT_FAILURE);
-			}
+		printf("je passe ici ?\n");
 
-			opp.sem_num=0;
-			opp.sem_op=1;
-			opp.sem_flg=0;
-			semop(semIDFile,&opp,1);
+		int flag = 1; //envoie d'une update fichier
+		if(send(socketClientArray[position], &flag, sizeof(flag), 0) ==-1){
+			perror("Erreur envoie verification");
+			exit(EXIT_FAILURE);
+		}
 
+		if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
+			perror("Erreur reception flag");
+			exit(EXIT_FAILURE);
+		}
+
+		opp.sem_num=0;
+		opp.sem_op=1;
+		opp.sem_flg=0;
+		semop(semIDFile,&opp,1);
 
 	}while(1);
 
@@ -223,7 +230,7 @@ void* gestionClient(void* tmp){
 		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
 
 	/* Réception du pseudo */
-	char pseudo[20];
+	char pseudo[30];
 	if(recv(socketClientArray[position], pseudo, sizeof(pseudo), 0) == -1)
 	{
 		perror("Erreur à la reception du pseudo client");
@@ -237,11 +244,10 @@ void* gestionClient(void* tmp){
 	opp.sem_flg=0;
 	semop(semIDFile,&opp,1);
 
-	strcpy(sharedStruct->listPseudo[0], pseudo);
+	strcpy(sharedStruct->listPseudo[position], pseudo);
 
 
 	//envoi liste pseudo 
-
 	if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*10*30)!=0){
 			perror("Erreur envoi liste pseudo");
 			exit(EXIT_FAILURE);
@@ -249,7 +255,6 @@ void* gestionClient(void* tmp){
 
 
     //envoi du fichier à la 1er connexion
-
     if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
 		perror("Erreur reception flag");
 		exit(EXIT_FAILURE);
@@ -259,6 +264,18 @@ void* gestionClient(void* tmp){
 	opp.sem_op=1;
 	opp.sem_flg=0;
 	semop(semIDFile,&opp,1);
+
+	int verif = 0;
+	if(reception_tcp(socketClientArray[position],&verif,sizeof(verif))!=0){
+		perror("Erreur reception verification");
+		exit(EXIT_FAILURE);
+	}
+
+	if(verif == 0){
+		perror("verification failed.");
+		exit(EXIT_FAILURE);
+	}
+	printf("Success verification = %d\n", verif);
 
 	//semaphore
 
@@ -270,6 +287,7 @@ void* gestionClient(void* tmp){
 		}
 		printf("flag = %i\n", flag);
 		if(flag==0){ //déconnexion !
+			printf("deco !\n");
 			opp.sem_num=0;
 			opp.sem_op=-1;
 			opp.sem_flg=0;
@@ -316,7 +334,7 @@ void* gestionClient(void* tmp){
 			opp.sem_op=0;
 			opp.sem_flg=0;
 			semop(semID,&opp,1);
-
+			printf("%s\n", fichier);
 		}
 
 	}while(flag==1);
