@@ -53,7 +53,7 @@ int envoi_tcp(int destinataire,const void * msg, int taille_msg)
 		if(rez<0)
 		{
 			printf("PROBLEME ENVOI FONCTION\n");
-			exit(1);
+			return 1;
 		}
 		else if(rez==0)
 		{

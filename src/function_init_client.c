@@ -33,8 +33,10 @@ void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
 
 void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   ClientStruct* socketStruct = ptr;
+  int socket =socketStruct->socket ;
   int flag = 1;
-  if(envoi_tcp(socketStruct->socket, &flag, sizeof(flag)) != 0){
+  printf("SOCKET : %d\n",socket);
+  if(envoi_tcp(socket, &flag, sizeof(flag)) != 0){
     perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
     exit(EXIT_FAILURE);
   }
@@ -43,9 +45,8 @@ void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
     perror("Erreur lors de l'envoi du fichier au serveur");
     exit(EXIT_FAILURE);
   }
-
+  printf("FICHIER ENVOYE -> %s\n", socketStruct->fichier );
   printf("j'arrive ici\n");
-  free(socketStruct);
 }
 
 
@@ -161,6 +162,7 @@ GtkWidget* init_update(char* fichier, int socket){
   ClientStruct* socketStruct = malloc(sizeof(ClientStruct));
   socketStruct->socket = socket;
   socketStruct->fichier = fichier;
+  printf("init update %d\n", socket );
   g_signal_connect(G_OBJECT(pButton), "clicked", G_CALLBACK(clientUpdate), (gpointer) socketStruct);
 
   gtk_widget_set_size_request(pVBox, 500, 150);

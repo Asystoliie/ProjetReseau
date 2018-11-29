@@ -105,14 +105,17 @@ void* update(void * tmp){
 		opp.sem_flg=0;
 		semop(semID,&opp,1);
 
+		printf("ON DOIT UPDATE \n");
 		opp.sem_num=position;
 		opp.sem_op=-1;
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
 
+
 		for (int i = 0; i < MAX; ++i) //
 		{
-			if(sharedStruct->socketClientArray[i]!=-1){
+			if(sharedStruct->socketClientArray[i]!=-1 && i!=position){
+				printf("client %d\n", sharedStruct->socketClientArray[i]);
 				opp.sem_num=i;
 				opp.sem_op=1;
 				opp.sem_flg=0;
@@ -185,7 +188,7 @@ void* majAffichageUti(void * tmp){
 		printf("je passe ici ?\n");
 
 		int flag = 1; //envoie d'une update fichier
-		if(send(socketClientArray[position], &flag, sizeof(flag), 0) ==-1){
+		if(envoi_tcp(socketClientArray[position], &flag, sizeof(flag)) ==-1){
 			perror("Erreur envoie verification");
 			exit(EXIT_FAILURE);
 		}
@@ -295,7 +298,7 @@ void* gestionClient(void* tmp){
 
 			sharedStruct->nbClients--;
 			sharedStruct->socketClientArray[position]=-1;
-			memset (sharedStruct->listPseudo[position], 0, sizeof (socketClientArray[position]));
+			memset(sharedStruct->listPseudo[position], 0, sizeof (socketClientArray[position]));
 
 			opp.sem_num=0;
 			opp.sem_op=1;
@@ -466,7 +469,12 @@ int main(int argc, char* argv[]){
 
     int nbClients = 0; // limiter à 10
     int* socketClientArray = malloc(MAX * sizeof(int));
-    memset(socketClientArray, -1, MAX);
+
+    for (int i = 0; i < MAX; ++i)
+    {
+    	socketClientArray[i]=-1; //memset marche pas 
+    	sharedStruct->socketClientArray[i]=-1;
+    }
 
     pthread_t* threadClientArray = malloc (MAX * sizeof(pthread_t));
     pthread_t* threadClientUpdateArray = malloc (MAX * sizeof(pthread_t));
@@ -499,7 +507,8 @@ int main(int argc, char* argv[]){
 		opp.sem_op=-1;
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
-
+		printf("CLIENT %i POSITION %i\n",socketClientArray[position], position );
+		sharedStruct->socketClientArray[position]=socketClientArray[position];
         sharedStruct->nbClients++;
         nbClients=sharedStruct->nbClients++;
 
