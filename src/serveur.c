@@ -496,6 +496,7 @@ int main(int argc, char* argv[]){
         struct sockaddr_in saiClient;
         int position = findPos(socketClientArray);
         socketClientArray[position] = accept(sock, (struct sockaddr*)&saiClient, &socklen);
+        //voir si à la déco, le socketClientArray[positionclientdéco] est mis à -1 !!
         if(socketClientArray[nbClients] == -1)
         {
             perror("Error accept");
