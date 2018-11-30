@@ -496,8 +496,8 @@ int main(int argc, char* argv[]){
         struct sockaddr_in saiClient;
         int position = findPos(socketClientArray);
         socketClientArray[position] = accept(sock, (struct sockaddr*)&saiClient, &socklen);
-        //voir si à la déco, le socketClientArray[positionclientdéco] est mis à -1 !!
-        if(socketClientArray[nbClients] == -1)
+
+        if(socketClientArray[position] == -1)
         {
             perror("Error accept");
             exit(EXIT_FAILURE);
@@ -510,6 +510,12 @@ int main(int argc, char* argv[]){
 		semop(semIDFile,&opp,1);
 		printf("CLIENT %i POSITION %i\n",socketClientArray[position], position );
 		sharedStruct->socketClientArray[position]=socketClientArray[position];
+
+		for (int i = 0; i < MAX; ++i)
+		{
+			socketClientArray[i]=sharedStruct->socketClientArray[i];
+		}
+
         sharedStruct->nbClients++;
         nbClients=sharedStruct->nbClients++;
 
