@@ -535,7 +535,7 @@ int main(int argc, char* argv[]){
 		}
 		else{
 
-			flag = 0; //trop de client connecté
+			flag = 0;
 			if(envoi_tcp(dSclient,&flag,sizeof(int))!=0){
 				perror("Erreur envoi flag connection");
 				exit(EXIT_FAILURE);

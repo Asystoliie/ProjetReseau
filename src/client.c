@@ -122,18 +122,7 @@ int main(int argc, char **argv)
 
 	// Passage port au format reseau
 	aD.sin_port = htons(port);
-	socklen_t lgA = sizeof(struct sockaddr_in) ;
-
-	// Demande connexion au serveur
-	printf("Tentative de connexion...\n");
-	if (connect(dS,(struct sockaddr*)&aD, lgA) == -1)
-	{
-		perror("Erreur connect ");
-		exit(EXIT_FAILURE);
-	}
-
-		
-	printf("Connecté.\n");
+	socklen_t lgA = sizeof(struct sockaddr_in);
 
     /* Variables */
     GtkWidget * MainWindow = NULL;
@@ -207,6 +196,26 @@ int main(int argc, char **argv)
 
 
     /*==================== COMMUNICATION ==================== */
+
+    // Demande connexion au serveur
+	printf("Tentative de connexion...\n");
+	if (connect(dS,(struct sockaddr*)&aD, lgA) == -1)
+	{
+		perror("Erreur connect ");
+		exit(EXIT_FAILURE);
+	}
+	printf("Connecté.\n");
+
+	char flag_connexion;
+	if(reception_tcp(dS,&flag_connexion,sizeof(int))!=0){
+		perror("Erreur reception listPseudo");
+		exit(EXIT_FAILURE);
+	}
+
+	if(flag_connexion != 0){
+		perror("Erreur connexion serveur (possiblement plein !)");
+		exit(EXIT_FAILURE);
+	}
 
     /* Envoie du pseudo + affichage des utilisateurs*/
     if(send(dS, pseudo, sizeof(pseudo), 0) == -1)
