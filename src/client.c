@@ -41,7 +41,7 @@ void* gestionFichier(void* tmp){
 		printf("flag = %i\n", flag);
 		printf("reception !\n");
 		if(flag==1){
-			char fichier[5000];
+			char fichier[SIZEMAXFICHIER];
 			if(reception_tcp(socket,fichier,sizeof(fichier))!=0){
 				perror("Erreur reception fichier");
 				exit(EXIT_FAILURE);
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(ListBoxD), zone_files);
 
     /* Initialisation du bouton update */
-    char fichier[5000];
+    char fichier[SIZEMAXFICHIER];
     GtkWidget *zone_update = init_update(fichier, dS, buffer);
     gtk_container_add(GTK_CONTAINER(ListBoxD), zone_update);
 

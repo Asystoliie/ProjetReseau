@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 
 int MAX = 10;
+int SIZEMAXFICHIER = 5000;
 
 typedef struct InfoClient InfoClient;
 struct InfoClient{

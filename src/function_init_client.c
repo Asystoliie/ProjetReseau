@@ -40,7 +40,19 @@ void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   GtkTextIter end;
   gtk_text_buffer_get_start_iter (socketStruct->buffer, &start);
   gtk_text_buffer_get_end_iter (socketStruct->buffer, &end);
+
+  int size = gtk_text_buffer_get_char_count(socketStruct->buffer);
+  printf("size = %i\n", size);
+
+  if(size > SIZEMAXFICHIER){
+    gtk_text_iter_backward_chars(&end, size-SIZEMAXFICHIER + 1);
+    printf("SIZEMAXFICHIER = %i\n", SIZEMAXFICHIER);
+    printf("size = %i\n", size);
+    printf("taille = %i\n", size-SIZEMAXFICHIER + 1);
+  }
+
   socketStruct->fichier = gtk_text_buffer_get_text(socketStruct->buffer, &start, &end, FALSE);
+  gtk_text_buffer_set_text(socketStruct->buffer, socketStruct->fichier, -1);
 
   printf("FILE = %s\n", socketStruct->fichier);
 
@@ -50,12 +62,11 @@ void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
     exit(EXIT_FAILURE);
   }
 
-  if(envoi_tcp(socketStruct->socket, socketStruct->fichier, sizeof(char)*5000) != 0){
+  if(envoi_tcp(socketStruct->socket, socketStruct->fichier, sizeof(char)*SIZEMAXFICHIER) != 0){
     perror("Erreur lors de l'envoi du fichier au serveur");
     exit(EXIT_FAILURE);
   }
   printf("FICHIER ENVOYE -> %s\n", socketStruct->fichier );
-  printf("j'arrive ici\n");
 }
 
 

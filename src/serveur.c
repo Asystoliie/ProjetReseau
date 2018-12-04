@@ -339,7 +339,7 @@ void* gestionClient(void* tmp){
 			semop(semIDFile,&opp,1);
 		}
 		else{
-			char fichier[5000];
+			char fichier[SIZEMAXFICHIER];
 			if(reception_tcp(socketClientArray[position],fichier,sizeof(fichier))!=0){
 				perror("Erreur reception fichier");
 				exit(EXIT_FAILURE);
