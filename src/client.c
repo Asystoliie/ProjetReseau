@@ -27,12 +27,15 @@
 void* gestionFichier(void* tmp){
 	ClientStruct* clientStruct = tmp;
 	int socket = clientStruct->socket;
-
+	int rez;
 	int flag;
 	do{
 		printf("Thread gestion fichier en attente...\n");
-		if(reception_tcp(socket,&flag,sizeof(int))!=0){
-			perror("Erreur reception flag fichier");
+		if(rez = reception_tcp(socket,&flag,sizeof(int))!=0){
+			if(rez==2)
+				perror("Serveur fermé !");
+			else
+				perror("Erreur reception flag fichier");
 			exit(EXIT_FAILURE);
 		}
 		printf("flag = %i\n", flag);

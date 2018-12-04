@@ -316,7 +316,7 @@ void* gestionClient(void* tmp){
 
 			sharedStruct->nbClients--;
 			sharedStruct->socketClientArray[position]=-1;
-			memset(sharedStruct->listPseudo[position], 0, sizeof (socketClientArray[position]));
+			memset(sharedStruct->listPseudo[position], 0, sizeof (30));
 
 			opp.sem_num=0;
 			opp.sem_op=1;
@@ -462,7 +462,7 @@ int main(int argc, char* argv[]){
 
 	//Initialisation de la mémoire partagée ( pas besoin de sémaphore ici )
 	sharedStruct->nbClients = 0;
-	strcpy(sharedStruct->fichier, "blasqsqdqs");
+	strcpy(sharedStruct->fichier, "Votre message ici");
 
 	/* --------------------------------------------------------------------------------------------------------- */
 
@@ -490,7 +490,8 @@ int main(int argc, char* argv[]){
 
     for (int i = 0; i < MAX; ++i)
     {
-    	socketClientArray[i]=-1; //memset marche pas 
+    	memset(sharedStruct->listPseudo[i],0,sizeof(30));
+    	socketClientArray[i]=-1;
     	sharedStruct->socketClientArray[i]=-1;
     }
 
