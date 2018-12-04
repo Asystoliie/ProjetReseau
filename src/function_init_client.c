@@ -35,6 +35,15 @@ void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   ClientStruct* socketStruct = ptr;
   int socket =socketStruct->socket ;
   int flag = 1;
+
+  GtkTextIter start;
+  GtkTextIter end;
+  gtk_text_buffer_get_start_iter (socketStruct->buffer, &start);
+  gtk_text_buffer_get_end_iter (socketStruct->buffer, &end);
+  socketStruct->fichier = gtk_text_buffer_get_text(socketStruct->buffer, &start, &end, FALSE);
+
+  printf("FILE = %s\n", socketStruct->fichier);
+
   printf("SOCKET : %d\n",socket);
   if(envoi_tcp(socket, &flag, sizeof(flag)) != 0){
     perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
@@ -148,7 +157,7 @@ GtkWidget* init_files(GtkTextBuffer *buffer){
   return zone_file;
 }
 
-GtkWidget* init_update(char* fichier, int socket){
+GtkWidget* init_update(char* fichier, int socket, GtkTextBuffer* buffer){
   GtkWidget *pButton;
   GtkWidget *zone;
   GtkWidget *pVBox;
@@ -162,6 +171,7 @@ GtkWidget* init_update(char* fichier, int socket){
   ClientStruct* socketStruct = malloc(sizeof(ClientStruct));
   socketStruct->socket = socket;
   socketStruct->fichier = fichier;
+  socketStruct->buffer = buffer;
   printf("init update %d\n", socket );
   g_signal_connect(G_OBJECT(pButton), "clicked", G_CALLBACK(clientUpdate), (gpointer) socketStruct);
 

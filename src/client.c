@@ -50,6 +50,8 @@ void* gestionFichier(void* tmp){
 			printf("fichier = %s\n", fichier);
 
 			strcpy(clientStruct->fichier, fichier);
+
+			gtk_text_buffer_set_text(clientStruct->buffer, fichier, -1);
 		}
 	}while(flag!=0);
 }
@@ -164,7 +166,7 @@ int main(int argc, char **argv)
 
     /* Initialisation du bouton update */
     char fichier[5000];
-    GtkWidget *zone_update = init_update(fichier, dS);
+    GtkWidget *zone_update = init_update(fichier, dS, buffer);
     gtk_container_add(GTK_CONTAINER(ListBoxD), zone_update);
 
     /* Construction de l'interface */
@@ -215,9 +217,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	GtkTextIter iter;
-	gtk_text_buffer_get_iter_at_offset(buffer, &iter, 0);
-	gtk_text_buffer_insert(buffer, &iter, fichier, -1);
+	gtk_text_buffer_set_text(buffer, fichier, -1);
 
 	int verif = 1;
 	printf("dS = %d\n", dS);
@@ -234,6 +234,7 @@ int main(int argc, char **argv)
 	ClientStruct* fichierStruct = malloc(sizeof(ClientStruct));
 	fichierStruct->socket = dS;
 	fichierStruct->fichier = fichier;
+	fichierStruct->buffer = buffer;
 	if(pthread_create(&threadClientArray[0], NULL, gestionFichier, fichierStruct) != 0){
   		printf("Erreur thread fichier! \n");
   		exit(EXIT_FAILURE);

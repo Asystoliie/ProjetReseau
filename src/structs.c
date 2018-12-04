@@ -51,5 +51,7 @@ typedef struct ClientStruct ClientStruct;
 struct ClientStruct{
 	int socket;
 	char* fichier;
+	GtkTextBuffer* buffer;
+	//GtkTreeStore* store_Utilisateurs;
 };
 

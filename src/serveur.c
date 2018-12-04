@@ -188,7 +188,7 @@ void* majAffichageUti(void * tmp){
 		printf("je passe ici ?\n");
 
 		int flag = 1; //envoie d'une update fichier
-		if(envoi_tcp(socketClientArray[position], &flag, sizeof(flag)) ==-1){
+		if(envoi_tcp(socketClientArray[position], &flag, sizeof(int)) ==-1){
 			perror("Erreur envoie verification");
 			exit(EXIT_FAILURE);
 		}
@@ -256,14 +256,13 @@ void* gestionClient(void* tmp){
 			exit(EXIT_FAILURE);
 	}
 
-
     //envoi du fichier à la 1er connexion
     if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
 		perror("Erreur reception flag");
 		exit(EXIT_FAILURE);
 	}
 
-	int flag_autre = 2 ; 
+	/*int flag_autre = 2 ; 
 	for (int i = 0; i < MAX; ++i)
 	{
 		if(i!=position && sharedStruct->socketClientArray[i]!=-1){
@@ -277,7 +276,7 @@ void* gestionClient(void* tmp){
 				exit(EXIT_FAILURE);
 			}
 		}
-	}
+	}*/
 
 
 
