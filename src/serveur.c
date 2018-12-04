@@ -262,7 +262,7 @@ void* gestionClient(void* tmp){
 		exit(EXIT_FAILURE);
 	}
 
-	/*int flag_autre = 2 ; 
+	int flag_autre = 2 ; 
 	for (int i = 0; i < MAX; ++i)
 	{
 		if(i!=position && sharedStruct->socketClientArray[i]!=-1){
@@ -276,7 +276,7 @@ void* gestionClient(void* tmp){
 				exit(EXIT_FAILURE);
 			}
 		}
-	}*/
+	}
 
 
 

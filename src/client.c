@@ -53,6 +53,13 @@ void* gestionFichier(void* tmp){
 
 			gtk_text_buffer_set_text(clientStruct->buffer, fichier, -1);
 		}
+		if(flag==2){
+			char listPseudo[10][30];
+			if(reception_tcp(socket,listPseudo,sizeof(char)*10*30)!=0){
+				perror("Erreur reception listPseudo");
+				exit(EXIT_FAILURE);
+			}
+		}
 	}while(flag!=0);
 }
 
