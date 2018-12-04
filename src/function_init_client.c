@@ -61,22 +61,18 @@ void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
 
 
 GtkWidget* init_menu(ClientStruct* socketStruct){
-	GtkWidget *pButton[3];
+	GtkWidget *pButton;
 	GtkWidget *pVBox;
 	GtkWidget *zone;
 
 	pVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	zone = gtk_fixed_new ();
 
-	pButton[0] = gtk_button_new_with_label("Update");
-	pButton[1] = gtk_button_new_with_label("Rejoindre");
-	pButton[2] = gtk_button_new_with_label("Quitter");
+	pButton = gtk_button_new_with_label("Quitter");
 
-	gtk_box_pack_start(GTK_BOX(pVBox), pButton[0], TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(pVBox), pButton[1], TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(pVBox), pButton[2], TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(pVBox), pButton, TRUE, TRUE, 0);
 
-  g_signal_connect(G_OBJECT(pButton[2]), "clicked", G_CALLBACK(clientLeave), (gpointer) socketStruct);
+  g_signal_connect(G_OBJECT(pButton), "clicked", G_CALLBACK(clientLeave), (gpointer) socketStruct);
 
 	gtk_widget_set_size_request(pVBox, 300, 150);
 	gtk_fixed_put(GTK_FIXED(zone), pVBox, 100, 100);
@@ -115,11 +111,6 @@ GtkTreeStore* init_users(GtkWidget* ListBox){
 
  	column = gtk_tree_view_column_new_with_attributes ("Utilisateur", renderer,
                                                     "text", USER_COLUMN,
-                                                    NULL);
- 	gtk_tree_view_append_column (GTK_TREE_VIEW (tree_Utilisateurs), column);
-
- 	column = gtk_tree_view_column_new_with_attributes ("Numéro", renderer,
-                                                    "text", NUMBER_COLUMN,
                                                     NULL);
  	gtk_tree_view_append_column (GTK_TREE_VIEW (tree_Utilisateurs), column);
 

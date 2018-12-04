@@ -410,14 +410,14 @@ int main(int argc, char* argv[]){
 	}
 
 	//semaphore pour l'update 
-	int semID = semget(key,NB_CLIENT,IPC_CREAT|0666);
+	int semID = semget(key,MAX,IPC_CREAT|0666);
 	if(semID==-1){perror("");printf("Erreur création sémaphore \n");return -1;}
 
 
 	union semun egCtrl ;
 	egCtrl.val=0; //nb de personne ayant la ressource en même temps
 
-	for (int i = 0; i < NB_CLIENT; ++i) //
+	for (int i = 0; i < MAX; ++i) //
 	{
 		int t = semctl(semID,i,SETVAL, egCtrl);
 		if(t==-1){printf("Erreur initialisation \n");return -1;}
@@ -445,13 +445,13 @@ int main(int argc, char* argv[]){
 	}
 
 	//semaphore pour la maj uti
-	int semIDMaj = semget(maj,NB_CLIENT,IPC_CREAT|0666);
+	int semIDMaj = semget(maj,MAX,IPC_CREAT|0666);
 	if(semIDMaj==-1){perror("");printf("Erreur création sémaphore \n");return -1;}
 
 
 	egCtrl.val=0; //nb de personne ayant la ressource en même temps
 
-	for (int i = 0; i < NB_CLIENT; ++i) //
+	for (int i = 0; i < MAX; ++i) //
 	{
 		int t = semctl(semIDMaj,i,SETVAL, egCtrl);
 		if(t==-1){printf("Erreur initialisation \n");return -1;}
@@ -501,7 +501,7 @@ int main(int argc, char* argv[]){
 
 
 	printf("Waiting for a connection.\n");
-	if(listen(sock, NB_CLIENT) == -1) //10 client max
+	if(listen(sock, 2) == -1) //10 client max
     {
         perror("Error listen");
         exit(EXIT_FAILURE);

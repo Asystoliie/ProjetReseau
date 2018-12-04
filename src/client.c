@@ -59,6 +59,26 @@ void* gestionFichier(void* tmp){
 				perror("Erreur reception listPseudo");
 				exit(EXIT_FAILURE);
 			}
+
+			enum
+			{
+			   USER_COLUMN,
+			   NUMBER_COLUMN,
+			   N_COLUMNS
+			};
+
+			gtk_tree_store_clear(clientStruct->store_Utilisateurs);
+
+			GtkTreeIter iter1;
+			for(int i = 0; i < MAX; i++){
+				if(strlen(listPseudo[i]) != 0){
+					gtk_tree_store_append (clientStruct->store_Utilisateurs, &iter1, NULL);
+					gtk_tree_store_set (clientStruct->store_Utilisateurs, &iter1,
+				                    USER_COLUMN, listPseudo[i],
+				                    NUMBER_COLUMN, 0,
+				                    -1);
+				}
+			}
 		}
 	}while(flag!=0);
 }
@@ -110,7 +130,9 @@ int main(int argc, char **argv)
 	{
 		perror("Erreur connect ");
 		exit(EXIT_FAILURE);
-	}	
+	}
+
+		
 	printf("Connecté.\n");
 
     /* Variables */
@@ -207,7 +229,7 @@ int main(int argc, char **argv)
 	};
 
 	GtkTreeIter iter1;
-	for(int i = 0; i < NB_CLIENT; i++){
+	for(int i = 0; i < MAX; i++){
 		if(strlen(listPseudo[i]) != 0){
 			gtk_tree_store_append (store_Utilisateurs, &iter1, NULL);
 			gtk_tree_store_set (store_Utilisateurs, &iter1,
@@ -242,16 +264,11 @@ int main(int argc, char **argv)
 	fichierStruct->socket = dS;
 	fichierStruct->fichier = fichier;
 	fichierStruct->buffer = buffer;
+	fichierStruct->store_Utilisateurs = store_Utilisateurs;
 	if(pthread_create(&threadClientArray[0], NULL, gestionFichier, fichierStruct) != 0){
   		printf("Erreur thread fichier! \n");
   		exit(EXIT_FAILURE);
   	}
-
-	// Thread reception utilisateurs
-	/*if(pthread_create(&threadClientArray[1], NULL, gestionClient, infoClient) != 0){
-  		printf("Erreur thread utilisateur! \n");
-  		exit(EXIT_FAILURE);
-  	}*/
 
 	/* Affichage et boucle évènementielle */
     gtk_main();

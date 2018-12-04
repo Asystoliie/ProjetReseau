@@ -21,7 +21,6 @@
 #include <gtk/gtk.h>
 
 int MAX = 10;
-int NB_CLIENT =10;
 
 typedef struct InfoClient InfoClient;
 struct InfoClient{
@@ -52,6 +51,6 @@ struct ClientStruct{
 	int socket;
 	char* fichier;
 	GtkTextBuffer* buffer;
-	//GtkTreeStore* store_Utilisateurs;
+	GtkTreeStore* store_Utilisateurs;
 };
 
