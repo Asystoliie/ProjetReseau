@@ -510,71 +510,96 @@ int main(int argc, char* argv[]){
 	struct sembuf opp;
     int fils=0;
 	while(fils!=1){
+		int dSclient;
+		int flag; 
+		struct sockaddr_in saiClient;
 
-        struct sockaddr_in saiClient;
-        int position = findPos(socketClientArray);
-        socketClientArray[position] = accept(sock, (struct sockaddr*)&saiClient, &socklen);
+		dSclient= accept(sock, (struct sockaddr*)&saiClient, &socklen);
 
-        if(socketClientArray[position] == -1)
-        {
-            perror("Error accept");
-            exit(EXIT_FAILURE);
-        }
-
-        //memoire partage + semaphore
-        opp.sem_num=0;
+ 	    opp.sem_num=0;
 		opp.sem_op=-1;
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
-		printf("CLIENT %i POSITION %i\n",socketClientArray[position], position );
-		sharedStruct->socketClientArray[position]=socketClientArray[position];
+	
+		if(sharedStruct->nbClients>=MAX){
+			opp.sem_num=0;
+			opp.sem_op=1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
 
-		for (int i = 0; i < MAX; ++i)
-		{
-			socketClientArray[i]=sharedStruct->socketClientArray[i];
+			flag = 1; //trop de client connecté
+			if(envoi_tcp(dSclient,&flag,sizeof(int))!=0){
+				perror("Erreur envoi flag connection");
+				exit(EXIT_FAILURE);
+			}
 		}
+		else{
 
-        sharedStruct->nbClients++;
-        nbClients=sharedStruct->nbClients++;
+			flag = 0; //trop de client connecté
+			if(envoi_tcp(dSclient,&flag,sizeof(int))!=0){
+				perror("Erreur envoi flag connection");
+				exit(EXIT_FAILURE);
+			}
 
-        opp.sem_num=0;
-		opp.sem_op=1;
-		opp.sem_flg=0;
-		semop(semIDFile,&opp,1);
-        //memoire partage + semaphore
 
-        printf("New connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
-        pid = fork();
-        if(pid==-1){ //erreur
-        	printf("ERROR FORK\n");
-        	exit(EXIT_FAILURE);
-        } else if(pid==0){ //fils
-        	fils=1;
-	        /* Création du thread pour le client */
-	        infoClient = malloc(sizeof(struct InfoClient));
-	        init_infoClient(infoClient, socketClientArray, position, id_mem, nbClients);
+	        int position = findPos(socketClientArray);
+	        socketClientArray[position]=dSclient;
+	        if(socketClientArray[position] == -1)
+	        {
+	            perror("Error accept");
+	            exit(EXIT_FAILURE);
+	        }
 
-	      	if(pthread_create(&threadClientArray[position], NULL, gestionClient, infoClient) != 0){
-	      		printf("Erreur ! \n");
-	      		exit(EXIT_FAILURE);
-	      	}
+			printf("CLIENT %i POSITION %i\n",socketClientArray[position], position );
+			sharedStruct->socketClientArray[position]=socketClientArray[position];
 
-	      	if(pthread_create(&threadClientUpdateArray[position], NULL, update, infoClient) != 0){
-	      		printf("Erreur ! \n");
-	      		exit(EXIT_FAILURE);
-	      	}
+			for (int i = 0; i < MAX; ++i)
+			{
+				socketClientArray[i]=sharedStruct->socketClientArray[i];
+			}
 
-	      	if(pthread_create(&threadMajAffichageUtiArray[position], NULL, majAffichageUti, infoClient) != 0){
-	      		printf("Erreur ! \n");
-	      		exit(EXIT_FAILURE);
-	      	}
+	        sharedStruct->nbClients++;
+	        nbClients=sharedStruct->nbClients++;
 
-	      	if(pthread_join(threadClientArray[position],NULL) != 0){
-	      		printf("Erreur ! \n");
-	      		exit(EXIT_FAILURE);
-	      	}
+	        opp.sem_num=0;
+			opp.sem_op=1;
+			opp.sem_flg=0;
+			semop(semIDFile,&opp,1);
+	        //memoire partage + semaphore
 
-	     } 
+	        printf("New connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
+	        pid = fork();
+	        if(pid==-1){ //erreur
+	        	printf("ERROR FORK\n");
+	        	exit(EXIT_FAILURE);
+	        } else if(pid==0){ //fils
+	        	fils=1;
+		        /* Création du thread pour le client */
+		        infoClient = malloc(sizeof(struct InfoClient));
+		        init_infoClient(infoClient, socketClientArray, position, id_mem, nbClients);
+
+		      	if(pthread_create(&threadClientArray[position], NULL, gestionClient, infoClient) != 0){
+		      		printf("Erreur ! \n");
+		      		exit(EXIT_FAILURE);
+		      	}
+
+		      	if(pthread_create(&threadClientUpdateArray[position], NULL, update, infoClient) != 0){
+		      		printf("Erreur ! \n");
+		      		exit(EXIT_FAILURE);
+		      	}
+
+		      	if(pthread_create(&threadMajAffichageUtiArray[position], NULL, majAffichageUti, infoClient) != 0){
+		      		printf("Erreur ! \n");
+		      		exit(EXIT_FAILURE);
+		      	}
+
+		      	if(pthread_join(threadClientArray[position],NULL) != 0){
+		      		printf("Erreur ! \n");
+		      		exit(EXIT_FAILURE);
+		      	}
+
+		     } 
+		 }
 
 	}
 	//on quitte l'application de manière "propre"
