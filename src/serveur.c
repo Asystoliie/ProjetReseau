@@ -263,6 +263,24 @@ void* gestionClient(void* tmp){
 		exit(EXIT_FAILURE);
 	}
 
+	int flag_autre = 2 ; 
+	for (int i = 0; i < MAX; ++i)
+	{
+		if(i!=position && sharedStruct->socketClientArray[i]!=-1){
+			if(envoi_tcp(sharedStruct->socketClientArray[i],&flag_autre,sizeof(int))!=0){
+				perror("Erreur envoi flag_autre 2");
+				exit(EXIT_FAILURE);
+			}
+
+			if(envoi_tcp(sharedStruct->socketClientArray[i],sharedStruct->listPseudo,sizeof(char)*10*30)!=0){
+				perror("Erreur envoi liste pseudo");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+
+
 	opp.sem_num=0;
 	opp.sem_op=1;
 	opp.sem_flg=0;
