@@ -31,13 +31,6 @@ void init_infoClient(struct InfoClient* infoClient, int* socketClientArray, int 
 	infoClient->numClient = numClient;
 }
 
-/*void init_sharedStruct(struct SharedStruct* sharedStruct){
-	
-	sharedStruct->listPseudo = malloc(MAX *sizeof(char*));
-	for(int i = 0; i < MAX; i++)
-		sharedStruct->listPseudo[i] = malloc(20 * sizeof(char));
-}*/
-
 /**
 *	Cherche une position libre dans le tableau de socket
 *	@param socketClientArray : le tableau de sockets
@@ -110,8 +103,6 @@ void* updatePseudo(void * tmp){
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
 
-		printf("je passe ici bis ?\n");
-
 		int flag_autre = 2 ; 
 		if(envoi_tcp(socketClientArray[position],&flag_autre,sizeof(int))!=0){
 			perror("Erreur envoi flag_autre ");
@@ -183,8 +174,6 @@ void* majAffichageUtiFile(void * tmp){
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
 
-		printf("je passe ici ?\n");
-
 		int flag = 1; //envoie d'une update fichier
 		if(envoi_tcp(socketClientArray[position], &flag, sizeof(int)) ==-1){
 			perror("Erreur envoie verification");
@@ -249,7 +238,7 @@ void* gestionClient(void* tmp){
 		exit(EXIT_FAILURE);
 	}
 	struct sembuf opp;
-	printf("%s\n", pseudo);
+
 	//semaphore
 	opp.sem_num=0;
 	opp.sem_op=-1;
@@ -304,9 +293,7 @@ void* gestionClient(void* tmp){
 		perror("verification failed.");
 		exit(EXIT_FAILURE);
 	}
-	printf("Success verification = %d\n", verif);
 
-	//semaphore
 
 	int flag; //flag pour savoir si le client quitte l'application
 	do{
@@ -314,9 +301,8 @@ void* gestionClient(void* tmp){
 			perror("Erreur reception flag autre");
 			flag=0;
 		}
-		printf("flag = %i\n", flag);
 		if(flag==0){ //déconnexion !
-			printf("deco !\n");
+			printf("deconnexion !\n");
 			opp.sem_num=0;
 			opp.sem_op=-1;
 			opp.sem_flg=0;
@@ -335,7 +321,6 @@ void* gestionClient(void* tmp){
 			for (int i = 0; i < MAX; ++i) //on update les pseudos
 			{
 				if(sharedStruct->socketClientArray[i]!=-1 && i!=position){
-					printf("client %d\n", sharedStruct->socketClientArray[i]);
 					opp.sem_num=i;
 					opp.sem_op=1;
 					opp.sem_flg=0;
@@ -369,7 +354,6 @@ void* gestionClient(void* tmp){
 			for (int i = 0; i < MAX; ++i) //on update le fichier à tous les clients
 			{
 				if(sharedStruct->socketClientArray[i]!=-1 && i!=position){
-					printf("client %d\n", sharedStruct->socketClientArray[i]);
 					opp.sem_num=i;
 					opp.sem_op=1;
 					opp.sem_flg=0;
@@ -523,7 +507,7 @@ int main(int argc, char* argv[]){
     struct InfoClient* infoClient;
 
 
-	printf("Waiting for a connection.\n");
+	printf("On attend une connection.\n");
 	if(listen(sock, 2) == -1) //10 client max
     {
         perror("Error listen");
@@ -573,7 +557,6 @@ int main(int argc, char* argv[]){
 	            exit(EXIT_FAILURE);
 	        }
 
-			printf("CLIENT %i POSITION %i\n",socketClientArray[position], position );
 			sharedStruct->socketClientArray[position]=socketClientArray[position];
 
 			for (int i = 0; i < MAX; ++i)
@@ -590,7 +573,7 @@ int main(int argc, char* argv[]){
 			semop(semIDFile,&opp,1);
 	        //memoire partage + semaphore
 
-	        printf("New connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
+	        printf("Nouvelle connection : %s\n", inet_ntoa((struct in_addr)saiClient.sin_addr));
 	        pid = fork();
 	        if(pid==-1){ //erreur
 	        	printf("ERROR FORK\n");
