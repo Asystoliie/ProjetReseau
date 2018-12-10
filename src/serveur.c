@@ -51,7 +51,7 @@ int findPos(int* socketClientArray){
 	}
 }
 
-void* update(void * tmp){
+void* updatePseudo(void * tmp){
 
 	InfoClient* infoClient = tmp;
 	int position = infoClient->position;
@@ -99,42 +99,42 @@ void* update(void * tmp){
 
 
 	do{
-		// il a bien reçus qu'il peut update !
+
 		opp.sem_num=position;
 		opp.sem_op=-1;
 		opp.sem_flg=0;
 		semop(semID,&opp,1);
 
-		printf("ON DOIT UPDATE \n");
-		opp.sem_num=position;
+		opp.sem_num=0;
 		opp.sem_op=-1;
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
 
+		printf("je passe ici bis ?\n");
 
-		for (int i = 0; i < MAX; ++i) //
-		{
-			if(sharedStruct->socketClientArray[i]!=-1 && i!=position){
-				printf("client %d\n", sharedStruct->socketClientArray[i]);
-				opp.sem_num=i;
-				opp.sem_op=1;
-				opp.sem_flg=0;
-				semop(semIDMaj,&opp,1);
-			}
+		int flag_autre = 2 ; 
+		if(envoi_tcp(socketClientArray[position],&flag_autre,sizeof(int))!=0){
+			perror("Erreur envoi flag_autre ");
+			exit(EXIT_FAILURE);
 		}
 
-		opp.sem_num=position;
+		if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*10*30)!=0){
+			perror("Erreur envoi liste pseudo");
+			exit(EXIT_FAILURE);
+		}
+
+
+		opp.sem_num=0;
 		opp.sem_op=1;
 		opp.sem_flg=0;
 		semop(semIDFile,&opp,1);
-
 
 	}while(1);
 
 }
 //attend un update des autres clients
 //mise à jour client
-void* majAffichageUti(void * tmp){
+void* majAffichageUtiFile(void * tmp){
 	InfoClient* infoClient = tmp;
 
 	int position = infoClient->position;
@@ -232,6 +232,19 @@ void* gestionClient(void* tmp){
 	int semIDFile =semget(file,0,0666);
 		if(semID==-1){printf("Erreur semaphore \n"); exit(EXIT_FAILURE);}
 
+	key_t maj;
+	if((maj = ftok("./maj.txt", 42)) == -1){
+		fprintf(stderr, "Erreur lors de l'assignation de la clé maj.\n");
+		perror("");
+		exit(EXIT_FAILURE);
+	}
+
+	//semaphore pour la maj uti
+
+
+	int semIDMaj = semget(maj,MAX,0666);
+	if(semIDMaj==-1){perror("");printf("Erreur sémaphore \n");exit(EXIT_FAILURE);}
+
 	/* Réception du pseudo */
 	char pseudo[30];
 	if(recv(socketClientArray[position], pseudo, sizeof(pseudo), 0) == -1)
@@ -313,30 +326,26 @@ void* gestionClient(void* tmp){
 			opp.sem_flg=0;
 			semop(semIDFile,&opp,1);
 
-			sharedStruct->nbClients--;
+			sharedStruct->nbClients--;			
+			close(sharedStruct->socketClientArray[position]);
 			sharedStruct->socketClientArray[position]=-1;
 			memset(sharedStruct->listPseudo[position], 0, sizeof (30));
-
-			int flag_autre = 2 ; 
-			for (int i = 0; i < MAX; ++i)
-			{
-				if(sharedStruct->socketClientArray[i]!=-1){
-					if(envoi_tcp(sharedStruct->socketClientArray[i],&flag_autre,sizeof(int))!=0){
-						perror("Erreur envoi flag_autre 3");
-						exit(EXIT_FAILURE);
-					}
-
-					if(envoi_tcp(sharedStruct->socketClientArray[i],sharedStruct->listPseudo,sizeof(char)*10*30)!=0){
-						perror("Erreur envoi liste pseudo");
-						exit(EXIT_FAILURE);
-					}
-				}
-			}
 
 			opp.sem_num=0;
 			opp.sem_op=1;
 			opp.sem_flg=0;
 			semop(semIDFile,&opp,1);
+
+			for (int i = 0; i < MAX; ++i) //on update les pseudos
+			{
+				if(sharedStruct->socketClientArray[i]!=-1 && i!=position){
+					printf("client %d\n", sharedStruct->socketClientArray[i]);
+					opp.sem_num=i;
+					opp.sem_op=1;
+					opp.sem_flg=0;
+					semop(semID,&opp,1);
+				}
+			}
 		}
 		else{
 			char fichier[SIZEMAXFICHIER];
@@ -353,24 +362,26 @@ void* gestionClient(void* tmp){
 
 			strcpy(sharedStruct->fichier, fichier);
 
+
+
 	        opp.sem_num=0;
 			opp.sem_op=1;
 			opp.sem_flg=0;
 			semop(semIDFile,&opp,1);
+		
 
-			//semaphore pour dire aux autres de s'update
-			//On donne une ressource à l'update
-			opp.sem_num=position;
-			opp.sem_op=1;
-			opp.sem_flg=0;
-			semop(semID,&opp,1);
+			for (int i = 0; i < MAX; ++i) //on update le fichier à tous les clients
+			{
+				if(sharedStruct->socketClientArray[i]!=-1 && i!=position){
+					printf("client %d\n", sharedStruct->socketClientArray[i]);
+					opp.sem_num=i;
+					opp.sem_op=1;
+					opp.sem_flg=0;
+					semop(semIDMaj,&opp,1);
+				}
+			}
 
-			//On attend la fin de l'update
-			opp.sem_num=position;
-			opp.sem_op=0;
-			opp.sem_flg=0;
-			semop(semID,&opp,1);
-			printf("%s\n", fichier);
+
 		}
 
 	}while(flag==1);
@@ -599,12 +610,12 @@ int main(int argc, char* argv[]){
 		      		exit(EXIT_FAILURE);
 		      	}
 
-		      	if(pthread_create(&threadClientUpdateArray[position], NULL, update, infoClient) != 0){
+		      	if(pthread_create(&threadClientUpdateArray[position], NULL, updatePseudo, infoClient) != 0){
 		      		printf("Erreur ! \n");
 		      		exit(EXIT_FAILURE);
 		      	}
 
-		      	if(pthread_create(&threadMajAffichageUtiArray[position], NULL, majAffichageUti, infoClient) != 0){
+		      	if(pthread_create(&threadMajAffichageUtiArray[position], NULL, majAffichageUtiFile, infoClient) != 0){
 		      		printf("Erreur ! \n");
 		      		exit(EXIT_FAILURE);
 		      	}
@@ -625,7 +636,7 @@ int main(int argc, char* argv[]){
 			perror("Erreur lors du détachement de la mémoire partagée.");
 			exit(EXIT_FAILURE);
 		}
-
+		close(sock);
 		free(threadClientArray);
 	    free(threadClientUpdateArray);
 	    free(threadMajAffichageUtiArray);

@@ -27,6 +27,7 @@ void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
     perror("Erreur lors de l'envoi du flag 0 de deconnexion");
     exit(EXIT_FAILURE);
   }
+  close(socketStruct->socket);
   free(socketStruct);
   exit(0);
 }
