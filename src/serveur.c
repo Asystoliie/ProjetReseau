@@ -115,12 +115,10 @@ void* updatePseudo(void * tmp){
 		int flag_autre = 2 ; 
 		if(envoi_tcp(socketClientArray[position],&flag_autre,sizeof(int))!=0){
 			perror("Erreur envoi flag_autre ");
-			exit(EXIT_FAILURE);
 		}
 
 		if(envoi_tcp(socketClientArray[position],sharedStruct->listPseudo,sizeof(char)*10*30)!=0){
 			perror("Erreur envoi liste pseudo");
-			exit(EXIT_FAILURE);
 		}
 
 
@@ -190,12 +188,10 @@ void* majAffichageUtiFile(void * tmp){
 		int flag = 1; //envoie d'une update fichier
 		if(envoi_tcp(socketClientArray[position], &flag, sizeof(int)) ==-1){
 			perror("Erreur envoie verification");
-			exit(EXIT_FAILURE);
 		}
 
 		if(envoi_tcp(socketClientArray[position],sharedStruct->fichier,sizeof(sharedStruct->fichier))!=0){
 			perror("Erreur reception flag");
-			exit(EXIT_FAILURE);
 		}
 
 		opp.sem_num=0;
