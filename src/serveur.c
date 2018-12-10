@@ -311,8 +311,8 @@ void* gestionClient(void* tmp){
 	int flag; //flag pour savoir si le client quitte l'application
 	do{
 		if(reception_tcp(socketClientArray[position],&flag,sizeof(int))!=0){
-			perror("Erreur reception flag");
-			exit(EXIT_FAILURE);
+			perror("Erreur reception flag autre");
+			flag=0;
 		}
 		printf("flag = %i\n", flag);
 		if(flag==0){ //déconnexion !
