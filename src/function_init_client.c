@@ -20,6 +20,33 @@
 
 #include <gtk/gtk.h>
 
+static gboolean
+key_event(G_GNUC_UNUSED GtkWidget *widget, GdkEventKey *event, gpointer ptr)
+{
+  ClientStruct* socketStruct = ptr;
+  int socket = socketStruct->socket;
+  int flag = 1;
+
+  gtk_text_buffer_get_start_iter (socketStruct->buffer, &socketStruct->start);
+  gtk_text_buffer_get_end_iter (socketStruct->buffer, &socketStruct->end);
+
+  strcpy(socketStruct->fichier, gtk_text_buffer_get_text(socketStruct->buffer, &socketStruct->start, &socketStruct->end, TRUE));
+
+  printf("%s\n", socketStruct->fichier);
+
+  if(envoi_tcp(socket, &flag, sizeof(flag)) != 0){
+    perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
+    exit(EXIT_FAILURE);
+  }
+
+  if(envoi_tcp(socketStruct->socket, socketStruct->fichier, sizeof(char)*SIZEMAXFICHIER) != 0){
+    perror("Erreur lors de l'envoi du fichier au serveur");
+    exit(EXIT_FAILURE);
+  }
+
+  return FALSE;
+}
+
 void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   int flag = 0;
   ClientStruct* socketStruct = ptr;
@@ -34,30 +61,27 @@ void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
 
 void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   ClientStruct* socketStruct = ptr;
-  int socket =socketStruct->socket ;
+  int socket = socketStruct->socket ;
   int flag = 1;
 
-  GtkTextIter start;
-  GtkTextIter end;
-  gtk_text_buffer_get_start_iter (socketStruct->buffer, &start);
-  gtk_text_buffer_get_end_iter (socketStruct->buffer, &end);
+  gtk_text_buffer_get_start_iter (socketStruct->buffer, &socketStruct->start);
+  gtk_text_buffer_get_end_iter (socketStruct->buffer, &socketStruct->end);
 
   int size = gtk_text_buffer_get_char_count(socketStruct->buffer);
   printf("size = %i\n", size);
 
   if(size > SIZEMAXFICHIER){
-    gtk_text_iter_backward_chars(&end, size-SIZEMAXFICHIER + 1);
+    gtk_text_iter_backward_chars(&socketStruct->end, size-SIZEMAXFICHIER + 1);
     printf("SIZEMAXFICHIER = %i\n", SIZEMAXFICHIER);
     printf("size = %i\n", size);
     printf("taille = %i\n", size-SIZEMAXFICHIER + 1);
   }
 
-  socketStruct->fichier = gtk_text_buffer_get_text(socketStruct->buffer, &start, &end, FALSE);
+  socketStruct->fichier = gtk_text_buffer_get_text(socketStruct->buffer, &socketStruct->start, &socketStruct->end, FALSE);
   gtk_text_buffer_set_text(socketStruct->buffer, socketStruct->fichier, -1);
 
   printf("FILE = %s\n", socketStruct->fichier);
 
-  printf("SOCKET : %d\n",socket);
   if(envoi_tcp(socket, &flag, sizeof(flag)) != 0){
     perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
     exit(EXIT_FAILURE);
@@ -69,8 +93,6 @@ void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   }
   printf("FICHIER ENVOYE -> %s\n", socketStruct->fichier );
 }
-
-
 
 GtkWidget* init_menu(ClientStruct* socketStruct){
 	GtkWidget *pButton;
@@ -137,7 +159,7 @@ GtkTreeStore* init_users(GtkWidget* ListBox){
  	return store_Utilisateurs;
 }
 
-GtkWidget* init_files(GtkTextBuffer *buffer){
+GtkWidget* init_files(ClientStruct* fichierStruct){
   GtkWidget *scrolled_window = NULL;
   GtkWidget *text_view = NULL;
 
@@ -148,8 +170,10 @@ GtkWidget* init_files(GtkTextBuffer *buffer){
   gtk_widget_set_size_request(scrolled_window, 500, 600);
   gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
 
-  text_view = gtk_text_view_new_with_buffer (buffer);
+  text_view = gtk_text_view_new_with_buffer (fichierStruct->buffer);
   gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD); 
+
+  g_signal_connect(GTK_TEXT_VIEW (text_view), "key-press-event", G_CALLBACK(key_event), (gpointer) fichierStruct);
 
   gtk_container_add (GTK_CONTAINER (scrolled_window), text_view);
 
@@ -160,7 +184,7 @@ GtkWidget* init_files(GtkTextBuffer *buffer){
   return zone_file;
 }
 
-GtkWidget* init_update(char* fichier, int socket, GtkTextBuffer* buffer){
+GtkWidget* init_update(ClientStruct* socketStruct){
   GtkWidget *pButton;
   GtkWidget *zone;
   GtkWidget *pVBox;
@@ -171,11 +195,6 @@ GtkWidget* init_update(char* fichier, int socket, GtkTextBuffer* buffer){
   pButton = gtk_button_new_with_label("Update");
   gtk_box_pack_start(GTK_BOX(pVBox), pButton, FALSE, FALSE, 0);
 
-  ClientStruct* socketStruct = malloc(sizeof(ClientStruct));
-  socketStruct->socket = socket;
-  socketStruct->fichier = fichier;
-  socketStruct->buffer = buffer;
-  printf("init update %d\n", socket );
   g_signal_connect(G_OBJECT(pButton), "clicked", G_CALLBACK(clientUpdate), (gpointer) socketStruct);
 
   gtk_widget_set_size_request(pVBox, 500, 150);

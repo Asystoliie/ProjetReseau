@@ -53,5 +53,7 @@ struct ClientStruct{
 	char* fichier;
 	GtkTextBuffer* buffer;
 	GtkTreeStore* store_Utilisateurs;
+	GtkTextIter start;
+	GtkTextIter end;
 };
 

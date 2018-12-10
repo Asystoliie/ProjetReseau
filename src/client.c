@@ -24,6 +24,13 @@
 #include "function.c"
 #include "function_init_client.c"
 
+static gboolean time_handler(gpointer ptr) {
+	ClientStruct* socketStruct = ptr;
+	printf("%s\n", socketStruct->fichier);
+    gtk_text_buffer_set_text(socketStruct->buffer, socketStruct->fichier, strlen(socketStruct->fichier)) ;
+    return TRUE;
+}
+
 void* gestionFichier(void* tmp){
 	ClientStruct* clientStruct = tmp;
 	int socket = clientStruct->socket;
@@ -38,8 +45,7 @@ void* gestionFichier(void* tmp){
 				perror("Erreur reception flag fichier");
 			exit(EXIT_FAILURE);
 		}
-		printf("flag = %i\n", flag);
-		printf("reception !\n");
+
 		if(flag==1){
 			char fichier[SIZEMAXFICHIER];
 			if(reception_tcp(socket,fichier,sizeof(fichier))!=0){
@@ -51,7 +57,10 @@ void* gestionFichier(void* tmp){
 
 			strcpy(clientStruct->fichier, fichier);
 
-			gtk_text_buffer_set_text(clientStruct->buffer, fichier, -1);
+			//gtk_text_buffer_set_text(clientStruct->buffer, fichier, strlen(fichier));
+
+			//gtk_text_buffer_get_start_iter (clientStruct->buffer, &clientStruct->start);
+  			//gtk_text_buffer_get_end_iter (clientStruct->buffer, &clientStruct->end);
 		}
 		if(flag==2){
 			char listPseudo[10][30];
@@ -179,12 +188,23 @@ int main(int argc, char **argv)
 
     GtkTextBuffer *buffer = gtk_text_buffer_new (NULL);
     /* Initialisation des fichiers */
-    GtkWidget *zone_files = init_files(buffer);
+    char fichier[SIZEMAXFICHIER];
+    ClientStruct* fichierStruct = malloc(sizeof(ClientStruct));
+    fichierStruct->socket = dS;
+	fichierStruct->fichier = fichier;
+	fichierStruct->buffer = buffer;
+	fichierStruct->store_Utilisateurs = store_Utilisateurs;
+
+	GtkTextIter start;
+    GtkTextIter end;
+	fichierStruct->start = start;
+	fichierStruct->end = end;
+    GtkWidget *zone_files = init_files(fichierStruct);
     gtk_container_add(GTK_CONTAINER(ListBoxD), zone_files);
 
     /* Initialisation du bouton update */
-    char fichier[SIZEMAXFICHIER];
-    GtkWidget *zone_update = init_update(fichier, dS, buffer);
+
+    GtkWidget *zone_update = init_update(fichierStruct);
     gtk_container_add(GTK_CONTAINER(ListBoxD), zone_update);
 
     /* Construction de l'interface */
@@ -269,15 +289,12 @@ int main(int argc, char **argv)
 	pthread_t* threadClientArray = malloc (2 * sizeof(pthread_t));
 
 	// Thread reception fichier
-	ClientStruct* fichierStruct = malloc(sizeof(ClientStruct));
-	fichierStruct->socket = dS;
-	fichierStruct->fichier = fichier;
-	fichierStruct->buffer = buffer;
-	fichierStruct->store_Utilisateurs = store_Utilisateurs;
 	if(pthread_create(&threadClientArray[0], NULL, gestionFichier, fichierStruct) != 0){
   		printf("Erreur thread fichier! \n");
   		exit(EXIT_FAILURE);
   	}
+
+  	g_timeout_add(4000, (GSourceFunc) time_handler, (gpointer) fichierStruct);
 
 	/* Affichage et boucle évènementielle */
     gtk_main();
