@@ -1,5 +1,5 @@
 CPP=gcc
-CFLAGS=-O3 -g
+CFLAGS=-O3 -g -w
 LDFLAGS=`pkg-config --cflags --libs gtk+-3.0`
 
 all: 

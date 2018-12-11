@@ -26,8 +26,7 @@
 
 static gboolean time_handler(gpointer ptr) {
 	ClientStruct* socketStruct = ptr;
-	printf("%s\n", socketStruct->fichier);
-    gtk_text_buffer_set_text(socketStruct->buffer, socketStruct->fichier, strlen(socketStruct->fichier)) ;
+    gtk_text_buffer_set_text(socketStruct->buffer, socketStruct->fichier, strlen(socketStruct->fichier));
     return TRUE;
 }
 
@@ -37,7 +36,6 @@ void* gestionFichier(void* tmp){
 	int rez;
 	int flag;
 	do{
-		printf("Thread gestion fichier en attente...\n");
 		if(rez = reception_tcp(socket,&flag,sizeof(int))!=0){
 			if(rez==2)
 				perror("Serveur fermé !");
@@ -53,14 +51,7 @@ void* gestionFichier(void* tmp){
 				exit(EXIT_FAILURE);
 			}
 
-			printf("fichier = %s\n", fichier);
-
 			strcpy(clientStruct->fichier, fichier);
-
-			//gtk_text_buffer_set_text(clientStruct->buffer, fichier, strlen(fichier));
-
-			//gtk_text_buffer_get_start_iter (clientStruct->buffer, &clientStruct->start);
-  			//gtk_text_buffer_get_end_iter (clientStruct->buffer, &clientStruct->end);
 		}
 		if(flag==2){
 			char listPseudo[10][30];
@@ -139,9 +130,9 @@ int main(int argc, char **argv)
     GtkWidget * ListBoxG = NULL;
     GtkWidget * ListBoxD = NULL;
     GdkRGBA color;
-    color.red = 0.5;
-    color.blue = 0.5;
-    color.green = 0.5;
+    color.red = 0.6;
+    color.blue = 0.6;
+    color.green = 0.6;
     color.alpha = 1.0;
     
 
@@ -153,7 +144,7 @@ int main(int argc, char **argv)
     gtk_window_set_title(GTK_WINDOW(MainWindow), "Pannel de connexion");
     gtk_window_resize (GTK_WINDOW(MainWindow), 1000, 800);
     gtk_window_set_position(GTK_WINDOW(MainWindow), GTK_WIN_POS_CENTER);
-    gtk_widget_override_background_color(MainWindow, GTK_STATE_NORMAL, &color);
+	gtk_widget_override_background_color(MainWindow, GTK_STATE_NORMAL, &color);
 
     ClientStruct* socketStruct = malloc(sizeof(ClientStruct));
     socketStruct->socket = dS;
@@ -201,11 +192,6 @@ int main(int argc, char **argv)
 	fichierStruct->end = end;
     GtkWidget *zone_files = init_files(fichierStruct);
     gtk_container_add(GTK_CONTAINER(ListBoxD), zone_files);
-
-    /* Initialisation du bouton update */
-
-    GtkWidget *zone_update = init_update(fichierStruct);
-    gtk_container_add(GTK_CONTAINER(ListBoxD), zone_update);
 
     /* Construction de l'interface */
     gtk_container_add(GTK_CONTAINER(MainWindow), MainBox);
@@ -278,7 +264,6 @@ int main(int argc, char **argv)
 	gtk_text_buffer_set_text(buffer, fichier, -1);
 
 	int verif = 1;
-	printf("dS = %d\n", dS);
 	if(send(dS, &verif, sizeof(verif), 0) ==-1){
 		perror("Erreur envoie verification");
 		exit(EXIT_FAILURE);
@@ -294,7 +279,7 @@ int main(int argc, char **argv)
   		exit(EXIT_FAILURE);
   	}
 
-  	g_timeout_add(4000, (GSourceFunc) time_handler, (gpointer) fichierStruct);
+  	g_timeout_add(3000, (GSourceFunc) time_handler, (gpointer) fichierStruct);
 
 	/* Affichage et boucle évènementielle */
     gtk_main();

@@ -30,9 +30,14 @@ key_event(G_GNUC_UNUSED GtkWidget *widget, GdkEventKey *event, gpointer ptr)
   gtk_text_buffer_get_start_iter (socketStruct->buffer, &socketStruct->start);
   gtk_text_buffer_get_end_iter (socketStruct->buffer, &socketStruct->end);
 
-  strcpy(socketStruct->fichier, gtk_text_buffer_get_text(socketStruct->buffer, &socketStruct->start, &socketStruct->end, TRUE));
+  int size = gtk_text_buffer_get_char_count(socketStruct->buffer);
 
-  printf("%s\n", socketStruct->fichier);
+  if(size > SIZEMAXFICHIER){
+    gtk_text_iter_backward_chars(&socketStruct->end, size-SIZEMAXFICHIER + 1);
+    printf("Taille limite atteinte !\n");
+  }
+
+  strcpy(socketStruct->fichier, gtk_text_buffer_get_text(socketStruct->buffer, &socketStruct->start, &socketStruct->end, TRUE));
 
   if(envoi_tcp(socket, &flag, sizeof(flag)) != 0){
     perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
@@ -57,41 +62,6 @@ void clientLeave(GtkWidget *widget, GdkEvent *event, gpointer ptr){
   close(socketStruct->socket);
   free(socketStruct);
   exit(0);
-}
-
-void clientUpdate(GtkWidget *widget, GdkEvent *event, gpointer ptr){
-  ClientStruct* socketStruct = ptr;
-  int socket = socketStruct->socket ;
-  int flag = 1;
-
-  gtk_text_buffer_get_start_iter (socketStruct->buffer, &socketStruct->start);
-  gtk_text_buffer_get_end_iter (socketStruct->buffer, &socketStruct->end);
-
-  int size = gtk_text_buffer_get_char_count(socketStruct->buffer);
-  printf("size = %i\n", size);
-
-  if(size > SIZEMAXFICHIER){
-    gtk_text_iter_backward_chars(&socketStruct->end, size-SIZEMAXFICHIER + 1);
-    printf("SIZEMAXFICHIER = %i\n", SIZEMAXFICHIER);
-    printf("size = %i\n", size);
-    printf("taille = %i\n", size-SIZEMAXFICHIER + 1);
-  }
-
-  socketStruct->fichier = gtk_text_buffer_get_text(socketStruct->buffer, &socketStruct->start, &socketStruct->end, FALSE);
-  gtk_text_buffer_set_text(socketStruct->buffer, socketStruct->fichier, -1);
-
-  printf("FILE = %s\n", socketStruct->fichier);
-
-  if(envoi_tcp(socket, &flag, sizeof(flag)) != 0){
-    perror("Erreur lors de l'envoi du flag 1 pour l'update du fichier");
-    exit(EXIT_FAILURE);
-  }
-
-  if(envoi_tcp(socketStruct->socket, socketStruct->fichier, sizeof(char)*SIZEMAXFICHIER) != 0){
-    perror("Erreur lors de l'envoi du fichier au serveur");
-    exit(EXIT_FAILURE);
-  }
-  printf("FICHIER ENVOYE -> %s\n", socketStruct->fichier );
 }
 
 GtkWidget* init_menu(ClientStruct* socketStruct){
@@ -174,6 +144,7 @@ GtkWidget* init_files(ClientStruct* fichierStruct){
   gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD); 
 
   g_signal_connect(GTK_TEXT_VIEW (text_view), "key-press-event", G_CALLBACK(key_event), (gpointer) fichierStruct);
+  g_signal_connect(GTK_TEXT_VIEW (text_view), "key-release-event", G_CALLBACK(key_event), (gpointer) fichierStruct);
 
   gtk_container_add (GTK_CONTAINER (scrolled_window), text_view);
 
@@ -182,25 +153,6 @@ GtkWidget* init_files(ClientStruct* fichierStruct){
   gtk_fixed_put(GTK_FIXED(zone_file), scrolled_window, 175, 50);
     
   return zone_file;
-}
-
-GtkWidget* init_update(ClientStruct* socketStruct){
-  GtkWidget *pButton;
-  GtkWidget *zone;
-  GtkWidget *pVBox;
-
-  zone = gtk_fixed_new ();
-  pVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-
-  pButton = gtk_button_new_with_label("Update");
-  gtk_box_pack_start(GTK_BOX(pVBox), pButton, FALSE, FALSE, 0);
-
-  g_signal_connect(G_OBJECT(pButton), "clicked", G_CALLBACK(clientUpdate), (gpointer) socketStruct);
-
-  gtk_widget_set_size_request(pVBox, 500, 150);
-  gtk_fixed_put(GTK_FIXED(zone), pVBox, 175, 0);
-
-  return zone;
 }
 
 void init_pseudo_box(GtkWidget* MainWindow, char* result){
@@ -212,7 +164,7 @@ void init_pseudo_box(GtkWidget* MainWindow, char* result){
     char pseudo[20];
   
   GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
-  dialog = gtk_dialog_new_with_buttons ("Saisie du nom",
+  dialog = gtk_dialog_new_with_buttons ("Boite de connexion",
                                         GTK_WINDOW(MainWindow),
                                         flags,
                                         ("OK"),
@@ -220,7 +172,7 @@ void init_pseudo_box(GtkWidget* MainWindow, char* result){
                                         NULL);
   pEntry = gtk_entry_new();
 
-  gtk_entry_set_text(GTK_ENTRY(pEntry), "Saisissez votre nom");
+  gtk_entry_set_text(GTK_ENTRY(pEntry), "Saisissez votre pseudo");
   box = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
   gtk_box_pack_start(GTK_BOX(box), pEntry, TRUE, FALSE, 0);
 
@@ -231,10 +183,14 @@ void init_pseudo_box(GtkWidget* MainWindow, char* result){
     {
         case GTK_RESPONSE_ACCEPT:
             sNom = gtk_entry_get_text(GTK_ENTRY(pEntry));
-            strcpy(pseudo, sNom);
-            if(strcmp(pseudo, "Saisissez votre nom") == 0){
-              strcpy(pseudo, "default");
-              printf("%s\n", pseudo);
+            if (strstr(sNom, " ") != NULL) {
+                strcpy(pseudo, "default");
+            }
+            else if(strcmp(sNom, "") == 0){
+                strcpy(pseudo, "default");
+            }
+            else{
+              strcpy(pseudo, sNom);
             }
             break;
 

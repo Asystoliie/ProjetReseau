@@ -468,7 +468,7 @@ int main(int argc, char* argv[]){
 
 	//Initialisation de la mémoire partagée ( pas besoin de sémaphore ici )
 	sharedStruct->nbClients = 0;
-	strcpy(sharedStruct->fichier, "Votre message ici");
+	strcpy(sharedStruct->fichier, "Votre fichier partagé ici (limité à 5000 caractères)");
 
 	/* --------------------------------------------------------------------------------------------------------- */
 
